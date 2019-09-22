@@ -1,1 +1,1 @@
-Files for computational vision
+p2_seam_carve is the main python file, the other images show the output of the file. The original files are ryan.jpg and whistler.png, the respective image_seam images show what the program does, showing the seams of lowest energy that will first be removed, then the final images have image_final format.
