@@ -10,8 +10,9 @@ import sys
 
 
 '''
-if the image is longer than it is fatter then it needs to be
-rotated 90 degrees before it is sliced (making all images horizontal)
+check_if_rotated
+check's to make sure all images are horizontal
+rotates the image if it is vertical instead of horizontal
 '''
 def check_if_rotated(img):
     row, col, color = img.shape
@@ -22,7 +23,8 @@ def check_if_rotated(img):
     return img, rotated
 
 '''
-Compute the sum of the absolute values of the x and y derivatives of the image produced by
+calcEnergy
+Computes the sum of the absolute values of the x and y derivatives of the image produced by
 the OpenCV function Sobel
 '''
 def calcEnergy(img):
@@ -33,34 +35,33 @@ def calcEnergy(img):
     return energy
 
 '''
-assign columns 0 and N − 1 absurdly large weights
-
+calcWeight
+using the energy matrix created by calcEnergy with the Sobel function,
+we assign weights to each index of the image based on this "energy".
+We assign columns 0 and N − 1 to be infinity since we do not want to delete the edges.
+We go through the matrix like so:
 -go through starting with the first row (this is just a row of energies)
+-set the 0th and last indicies to be infinity
+-get all indicies between the first and last (exclusive)
 -go to the row below, for each index you add the min energy from the 
- row above (just contained to the touching indecies)
+ row above (just contained to the touching indecies) (we use a stacking method for comparison)
  say this is the original energy matrix:
- _______________________________
- |_5_|_8_|_12_|_2_|_22_|_8_|_9_|
- |_3_| 12_|_7_|_21_|_14_|_4_|_10_|
- |_11_|_3_|_9_|_13_|_6_|_32_|_23_|
+ ____________________________________
+ |__5_|__8_|_12_|__2_|_22_|__8_|__9_|
+ |__3_|_12_|__7_|_21_|_14_|__4_|_10_|
+ |_11_|__3_|__9_|_13_|__6_|_32_|_23_|
  
- the way I am understanding this is that we go through like this,
- adding the min from above to the numbers below
- _______________________________
- |_5_|_8_|_12_|_2_|_22_|_8_|_9_|
- |_8_| 17_|_9_|_23_|_16_|_12_|_18_|
+ using this example, we then add the min touching index to the index below it, like so:
+ ____________________________________
+ |__5_|__8_|_12_|__2_|_22_|__8_|__9_|
+ |__8_|_17_|__9_|_23_|_16_|_12_|_18_|
+ the 8 above comes from the index being 3 originally, then taking the min of the indicies touching
+ above (5 and 8, so 5 is the min) and adding that min to the index (3+5=8)
+ the 17 above comes from the index being 12 originally, then taking the min of the touching indicies (5, 8, 12)
+ in the row above and adding the min of those 3 indicies to the index (12+5 = 17)
+ etc following this pattern, the following row using these newly added numbers would be:
  |_19_|_11_|_18_|_22_|_18_|_44_|_35_|
- 
-
-going through row by row of the energy matrix
-setting the 0th and last indicies to be infinity
-getting all indicies between the first and last (exclusive)
-but getting those middle indicies staggard (left, right, center)
-these staggard arrays can then be stacked so that each column
-of the stacked array will be the comparison between one index and
-its two neighbors. finding the minimum of this column will give 
-the minimum value of the index and its neighbors. this min value
-gets added to the index in the row below it. we go row by row doing this
+ the 19 comes from orginal index 11 adding the min of the touching above indices (8, 17) (11+8=19), etc
 ''' 
 def calcWeight(energy):
     weight = np.copy(energy)
@@ -73,6 +74,8 @@ def calcWeight(energy):
         row[0] = np.inf
         row[-1] = np.inf
         is_min = np.zeros_like(row)
+        #we get the staggard indices (left, right, center) so we can stack them for comparison
+        #each col of the stacked array will be the comparison between one index and its two neighbors
         left = row[ :-2]
         right = row[ 2: ]
         center = row[ 1:-1 ]
@@ -81,15 +84,18 @@ def calcWeight(energy):
         is_min[ 1:-1 ] = np.amin(stack, axis=0)
         is_min[0] = np.inf
         is_min[-1] = np.inf
+        #the min value of the stack gets added to the index in the row below
         weight[i,:] = np.add(is_min, weight[i,:])
     return weight
 
 '''
-start at the bottom row
-find the index of the minimum value
-go up the rows towards the top of the image, 
-checking the indicies of the minimum index and its neighbors
-to find the path up the image of the seam
+findSeam
+just finds the seam that will be deleted
+-starts at the bottom row of the image
+-finds the index of the minimum value
+-goes up the rows towards the top of the image,
+    checking the indicies of the minimum index and its neighbors
+    to find the path up the image of the seam
 '''
 def findSeam(weight):
     seam = []
@@ -106,6 +112,7 @@ def findSeam(weight):
     return seam
 
 '''
+plotFirstSeam
 plotting the seam on the image so that it shows in red
 this is written to the output image file of the proper name
 '''
@@ -119,6 +126,7 @@ def plotFirstSeam(img, seam, file_name):
     cv2.imwrite(output_name, im)      
 
 '''
+deleteSeam
 deleting the indicies of the seam from the image
 using a mask which creates the image in bools and sets
 the seam index to be deleted to be false so when the image
@@ -137,13 +145,9 @@ def deleteSeam(img, seam):
 
 
 '''
+output
 a proper format of the output needed using all information found
 through the other functions
-
-THERE WAS A POINT TAKEN OFF HERE in auto grading in submitty
-all other numbers are correct and I am asusming it is a rounding error 
-since only one number (for the whistler image (my output is 134 but submitty
-output is 135)) is off, but other than that this is working fine
 '''
 def output(row, col, seam, total_energy, seam_num, rotate):
     print("\nPoints on seam %d:" %seam_num)
