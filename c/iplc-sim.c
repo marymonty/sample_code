@@ -137,6 +137,9 @@ pipeline_t pipeline[MAX_STAGES];
 /************************************************************************************************/
 /* Cache Functions ******************************************************************************/
 /************************************************************************************************/
+
+/* MARY wrote the Cache Functions */
+
 /*
  * Correctly configure the cache.
  */
@@ -195,10 +198,6 @@ void iplc_sim_init(int index, int blocksize, int assoc)
  */
 void iplc_sim_LRU_replace_on_miss(int index, int tag)
 {
-    // TODO Cache:
-    /* I have no idea what this needs to do yet */
-    /* You must implement this function */
-
     int replaced_zero = 0;
     int i = 0;
 
@@ -211,10 +210,9 @@ void iplc_sim_LRU_replace_on_miss(int index, int tag)
             cache[index].valid[i] = 1;
             cache[index].tag[i] = tag;
             /**
-                not exactly sure what the replaced array is for?
-                ill just add one to the index we put the tag into 
+                add one to the index we put the tag into 
                 to signify that there has been another replacement there
-                we should know the value to be replaces is always going to be
+                we should know the value to be replaced is always going to be
                 either a zero or the 0th index in the array
             **/
             cache[index].replace[i] = (cache[index].replace[i] + 1);
@@ -232,7 +230,7 @@ void iplc_sim_LRU_replace_on_miss(int index, int tag)
         }
         //set the last index to the new tag
         cache[index].tag[i] = tag;
-        //still not sure what im supposed to be doing with this
+        //replace the index with the following index
         cache[index].replace[i] = (cache[index].replace[i] + 1);
     }
 }
@@ -242,12 +240,7 @@ void iplc_sim_LRU_replace_on_miss(int index, int tag)
  * information in the cache.
  */
 void iplc_sim_LRU_update_on_hit(int index, int assoc_entry)
-{
-    // TODO Cache: 
-    /* Similiar or maybe even same as iplc_sim_LRU_replace_on_miss */
-
-    /* You must implement this function */
-    
+{   
     int i = assoc_entry;
     //need to save the tag we are moving so we can move it
     int moved_tag = cache[index].tag[assoc_entry];
@@ -281,7 +274,6 @@ int iplc_sim_trap_address(unsigned int address)
     
     // Call the appropriate function for a miss or hit
     
-    // TODO Cache:
     /* we need to be able to compute the index and tag
     and then check if there is a hit or miss
     then update the number of hits and misses we have */
@@ -292,10 +284,7 @@ int iplc_sim_trap_address(unsigned int address)
     // |_____________________________|___________|__________|
     tag = address >> (cache_index + cache_blockoffsetbits);
 
-
-    //im not sure how to find the index
     index = 1;
-
 
     //print the address, tag, and index with proper formatting
     printf("Address %x: Tag= %x, Index= %d\n", address, tag, index);
@@ -360,6 +349,9 @@ void iplc_sim_finalize()
     printf("\t Total Correct Branch Predictions is %u \n", correct_branch_predictions);
     printf("\t CPI is %f \n\n", (double)pipeline_cycles / (double)instruction_count);
 }
+
+
+/* END OF MARY's CODE */
 
 /************************************************************************************************/
 /* Pipeline Functions ***************************************************************************/
