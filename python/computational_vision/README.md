@@ -9,20 +9,20 @@ I then calculate the "energy" of each index in the image using the OpenCV Sobel 
 Once that energy is calculated, we calculate the weights of each index using a method that builds row upon row, using the row above to find a minimum touching index that is added to the touching index in the row below. Here is a demo of what I mean: 
 say this is the original energy matrix:
  ________________
- |__5_|__8_|_12_|
- |__3_|_12_|__7_|
- |_11_|__3_|__9_|
+ |  5 |  8 | 12 |
+ |  3 | 12 |  7 |
+ | 11 |  3 |  9 |
  
  using this example, we then add the min touching index to the index below it, like so:
  ________________
- |__5_|__8_|_12_|
- |__8_|_17_|__9_|
+ |  5 |  8 | 12 |
+ |  8 | 17 |  9 |
 
 the 8 above comes from the index being 3 originally, then taking the min of the indicies touching above (5 and 8, so 5 is the min) and adding that min to the index (3+5=8)
 the 17 above comes from the index being 12 originally, then taking the min of the touching indicies (5, 8, 12) in the row above and adding the min of those 3 indicies to the index (12+5 = 17)
 etc following this pattern, the following row using these newly added numbers would be:
 
- |_19_|_11_|_18_|
+ | 19 | 11 | 18 |
 
 the 19 comes from orginal index 11 adding the min of the touching above indices (8, 17) (11+8=19), etc.
 
