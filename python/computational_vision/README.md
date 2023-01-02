@@ -10,12 +10,15 @@ Once that energy is calculated, we calculate the weights of each index using a m
 say this is the original energy matrix:
  ________________
  |  5 |  8 | 12 |
+ 
  |  3 | 12 |  7 |
+ 
  | 11 |  3 |  9 |
  
  using this example, we then add the min touching index to the index below it, like so:
  ________________
  |  5 |  8 | 12 |
+ 
  |  8 | 17 |  9 |
 
 the 8 above comes from the index being 3 originally, then taking the min of the indicies touching above (5 and 8, so 5 is the min) and adding that min to the index (3+5=8)
