@@ -1,0 +1,107 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Numerics;
+using UnityEngine;
+
+using MText;
+
+/* DetectCollisionWithCam
+ * this script is applied to the characters in the scene
+ * it detects when the character has collided with the player (main camera)
+ * and forces the character to turn and face the camera
+ */
+public class DetectCollisionWithCam : MonoBehaviour
+{
+    // Start is called before the first frame update
+    void Start()
+    {
+
+    }
+
+    // Update is called once per frame
+    void Update()
+    {
+        
+    }
+
+    // we are overriding the OnTriggerEnter  from the MonoBehaviour class
+    private void OnTriggerEnter(Collider collidedObj)
+    {
+        // check that collidedObj is the player & camera
+        if (collidedObj.gameObject.tag == "MainCamera")
+        {
+            // get the world space of the camera (we get this through the collidedObj param)
+            UnityEngine.Vector3 camRelativePos = collidedObj.transform.eulerAngles;
+
+            // get the world space of the gameObject (get through gameObject param)
+            UnityEngine.Vector3 NPCRelativePos = gameObject.transform.eulerAngles;
+
+            // use the findRotation helper method to find the amount of rotation we need to rotate
+            // the gameObject to make them look at the camera
+            // store the value of this rotation needed in NPCRotY
+            float NPCRotY = 0;
+            findRotation(camRelativePos.y, NPCRelativePos.y, ref NPCRotY);
+
+            // Now that we have the rotation amount needed, we find the center point
+            // of the bounding box and rotate around that point by the NPCRotY amount
+
+            //Fetch the Collider from the GameObject
+            Collider m_Collider = GetComponent<Collider>();
+            //Fetch the center of the Collider volume
+            UnityEngine.Vector3 m_Center = m_Collider.bounds.center;
+            // rotate around that center collider box point
+            gameObject.transform.RotateAround(m_Center, gameObject.transform.up, NPCRotY);
+
+            // we can confirm whats happening in the debug log!
+            UnityEngine.Debug.Log("camRelativePos = " + camRelativePos + "   NPCRelativePos = " + NPCRelativePos + "  NPCRotY = " + NPCRotY);
+        }
+    }
+
+
+    /*  findRotation
+     *      calculates the complimentary direction to the camera forward direction
+     *      so we can set the object to match up with the complimentary direction 
+     *      (meaning the object is facing the camera)
+     *      we are making that direction change possible by figuring out the rotation difference
+     *      so we can properly rotate the object to face the camera
+     *  params:
+     *      camY = the y rotation of the camera
+     *      objY = the y rotation of the object that needs to face the camera
+     *      objRotY = the reference variable that gets set to the amount the object needs to rotate
+     *                  in order to face the camera
+     */
+    private void findRotation(float camY, float objY, ref float objRotY)
+    {
+        float camYDifference;
+        float complimentaryCamY;
+        // if the camera rotation is greater than 180 degrees...
+        if (camY > 180)
+        {
+            // get the rotation difference with camera rotation - 180 degrees
+            // to get the distance from the angle to 180
+            // this distance (difference) equals the complimentary angle
+            // when we start from 0 and add this difference
+            camYDifference = camY - 180;
+            complimentaryCamY = camYDifference;
+        }
+        else
+        {
+            // the camera angle is less than 180, so get the difference of
+            // 180 minus the camera angle on the top half of the unit circle
+            // find the complimentary angle in the bottom half of the unit circle
+            // by taking 360 and subtracting this difference angle
+            camYDifference = 180 - camY;
+            complimentaryCamY = 360 - camYDifference;
+        }
+
+        // complimentaryCamY is the complimentary vector to the camera forward vector
+        // it is the direction that the object forward vector needs to match up to
+        // in order to be looking in the camera lense
+        // we need to make objY be facing the complimentaryCamY direction
+        // keep in mind, objRotY might be negative if the object rotates backwards to face the camera
+        objRotY = complimentaryCamY - objY;
+    }
+
+}
