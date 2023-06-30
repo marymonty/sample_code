@@ -1,0 +1,1236 @@
+// Montgomery_Final
+
+// building bedrooms
+
+// globals
+// global material array
+global string $materials[] = {"wallMat", "bedMat", "tableMat", "chairMat", "dresserMat", "wallDecorMat", "rugMat", "sockMat", "boxerMat", "shirtMat" };
+
+// global colors arrays for each bedroom type
+
+// ColorfulColors { light red, dark red, light orange, dark orange, 
+//                    light yellow, dark yellow, light green, dark green,
+//                    light blue, dark blue, light purple, dark purple,
+//                    light pink, dark pink, white } 
+global float $ColorfulColors[] = { 0.76, 0.3, 0.3,  0.44, 0.086, 0.086,  0.814, 0.439, 0.207,  0.44, 0.189, 0.034, 
+                            0.663, 0.597, 0.156,  0.5, 0.445, 0.0,  0.475, 0.872, 0.205,  0.036, 0.167, 0.003,
+                            0.325, 0.475, 0.872,  0.068, 0.154, 0.384,  0.482, 0.329, 0.934,  0.148, 0.068, 0.384,
+                            0.872, 0.410, 0.869,  0.384, 0.007, 0.242,  1.0, 1.0, 1.0 };
+// BlueGreenColors { light blue, medium blue, dark blue, darker blue,
+//                    light blue-green, medium blue-green, dark blue-green, darker blue-green,
+//                    light green, medium green, dark green, darker green
+global float $BlueGreenColors[] = { 0.329, 0.399, 0.934,  0.191, 0.231, 0.54,  0.08, 0.106, 0.312,  0.023, 0.039, 0.167,
+                                    0.479, 0.814, 0.814,  0.249, 0.471, 0.471,  0.069, 0.207, 0.207,  0.012, 0.118, 0.118,
+                                    0.325, 0.663, 0.388,  0.165, 0.384, 0.206,  0.061, 0.207, 0.088,  0.004, 0.097, 0.021 };
+// PinkOrangeColors { light pink, medium pink, dark pink, darker pink, 
+//                    light orange, medium orange, dark orange, darker orange,
+//                    light yellow-orange, medium, dark, darker yellow-orange
+global float $PinkOrangeColors[] = { 0.934, 0.641, 0.871,  0.663, 0.351, 0.596,  0.411, 0.161, 0.357,  0.252, 0.051, 0.240, 
+                                     0.934, 0.559, 0.439,  0.934, 0.434, 0.275,  0.619, 0.26, 0.146,  0.54, 0.162, 0.042, 
+                                     1.0, 0.849, 0.588,  0.814, 0.616, 0.303,  0.71, 0.499, 0.139,  0.54, 0.356, 0.042 };
+// EarthyColors { light, medium, dark, darker olive green,
+//                light, medium, dark, darker beige,
+//                light, medium, dark, darker firebrick red }
+global float $EarthyColors[] = { 0.6, 0.663, 0.52,  0.422, 0.471, 0.36,  0.318, 0.358, 0.267,  0.199, 0.222, 0.17, 
+                                 0.663, 0.613, 0.52,  0.471, 0.429, 0.351,  0.358, 0.326, 0.267,  0.254, 0.228, 0.179,
+                                 0.54, 0.4, 0.392,  0.411, 0.296, 0.29,  0.272, 0.186, 0.182,  0.254, 0.126, 0.12 };
+// global bool for if the user has already created a slider
+global int $createdSlider = 0;
+
+
+// Making the bedroom UI 
+// this UI will prompt the user for a few different attributes of a bedroom:
+//    the type of bedroom (colorful child, blue teen, pink teen, earthy adult)
+//    the size of the bedroom (small, medium, large)
+//    and the cleanliness of the bedroom (spotless, average, messy)
+string $bedroomUI = `window -title "Make A Bedroom!" -w 300 -h 250`;
+columnLayout -adjustableColumn true -bgc 0.5 0.7 0.6;
+// radio box's for types of bedrooms
+text -label "Please specify the type of bedroom you want: " -h 30;
+radioButtonGrp -numberOfRadioButtons 4 -labelArray4 "Colorful / Childrens" "Blue Greens / Teen Masculine" "Pink Oranges / Teen Feminine" "Earthy / Adult" -select 1 -vertical bedroomTypeRadio;
+// radio box's for size of bedroom
+text -label "Please specify the size of the bedroom: " -h 30;
+radioButtonGrp -numberOfRadioButtons 3 -labelArray3 "Small" "Medium" "Large" -select 1 -vertical bedroomSizeRadio;
+// radio box's for messiness of bedroom
+text -label "Please specify the messiness of the bedroom: " -h 30;
+radioButtonGrp -numberOfRadioButtons 3 -labelArray3 "Spotless" "Average Mess" "Very Messy" -vertical bedroomMessRadio;
+// create the button to call the createBedroom function
+text -label "Click the button to create your bedroom!" -h 30;
+button -label "Create Bedroom" -bgc 0.4 0.6 0.5 -h 30 -command "createBedroom()";
+text -label "";
+// create a slider for lights and movement
+text -label "Click the button to make a slider in the scene to adjust the time of day:" -h 25;
+button -label "Create Slider" -command "createSlider" -bgc 0.4 0.6 0.5;
+// create the buttons to reset the scene or close the window
+text -label "When finished, reset the scene or close the window" -h 30;
+button -label "Reset the Scene" -command "resetScene()" -h 30 -bgc 0.4 0.6 0.5;
+// stretch goal would be to have a "Rearrange" button that would take all
+//  objects currently in the room and rearrange them
+button -label "Close the Window" -command "cleanUp($bedroomUI)" -h 30 -bgc 0.4 0.6 0.5;
+// need to show the window
+showWindow;
+
+
+// createBedroom
+// this function creates a bedroom based on user specifications
+proc createBedroom()
+{   
+    /********* ROOM SIZE **********/
+    // get the size of the room from the radio button
+    // 1 = small
+    // 2 = medium
+    // 3 = large
+    int $roomSize = `radioButtonGrp -q -select bedroomSizeRadio`;
+    if ($roomSize == 2)
+    {
+        // make a medium sized room by setting floor and wall scale attributes
+        setAttr "floor.scaleX" 30;
+        setAttr "floor.scaleZ" 30;
+        setAttr "leftWall.scaleX" 30;
+        setAttr "middleWall.scaleX" 30;
+        setAttr "rightWall.scaleX" 30;
+        setAttr "middleWall.translateZ" -15; 
+        setAttr "leftWall.translateX" -15;
+        setAttr "rightWall.translateX" 15;        
+    }
+    else if ($roomSize == 3)
+    {
+        // make a large sized room by setting floor and wall scale attributes
+        setAttr "floor.scaleX" 40;
+        setAttr "floor.scaleZ" 40;
+        setAttr "leftWall.scaleX" 40;
+        setAttr "middleWall.scaleX" 40;
+        setAttr "rightWall.scaleX" 40;
+        setAttr "middleWall.translateZ" -20; 
+        setAttr "leftWall.translateX" -20;
+        setAttr "rightWall.translateX" 20; 
+    }
+    // else, we are using the small (default) size room
+    else
+    {
+        // make a small sized room by setting floor and wall scale attributes
+        setAttr "floor.scaleX" 20;
+        setAttr "floor.scaleZ" 20;
+        setAttr "leftWall.scaleX" 20;
+        setAttr "middleWall.scaleX" 20;
+        setAttr "rightWall.scaleX" 20;
+        setAttr "middleWall.translateZ" -10; 
+        setAttr "leftWall.translateX" -10;
+        setAttr "rightWall.translateX" 10; 
+    }
+    // we can show the floor and walls at this point since they are set
+    showHidden floor;
+    showHidden middleWall;
+    showHidden rightWall;
+    showHidden leftWall;
+    
+    
+    /********* ROOM TYPE **********/
+    // get the bedroom type
+    // 1 = Colorful / Childrens
+    // 2 = Blue Greens / Teen Masculine
+    // 3 = Pink Oranges / Teen Feminine
+    // 4 = Earthy / Adult
+    int $bedroomType = `radioButtonGrp -q -select bedroomTypeRadio`;
+    // create strings for storing the objects of the room
+    string $bed = "";
+    string $table1 = "";
+    string $table2 = "";
+    string $chair1 = "";
+    string $chair2 = "";
+    string $dresser1 = "";
+    string $dresser2 = "";    
+    string $wallDecor1 = "";
+    string $wallDecor2 = "";
+    string $wallDecor3 = "";
+    string $rug = "";
+    // make a few randomized numbers to deal with object creation
+    float $random1 = rand(0, 1);
+    float $random2 = rand(0, 1);
+    float $random3 = rand(0, 1);
+    float $random4 = rand(0, 1);
+    float $random5 = rand(0, 1);
+
+    // here are the objects that are made at the same rate across
+    // all bedroom types - DRESSER, WALL DECOR, RUG
+
+     //****** DRESSER ******//
+    // we are equally likely to create mod, large, or medium dresser
+    if ($random1 < 0.33) {   
+        $dresser1 = "modDresser";   }
+    else if ($random1 < 0.66 && $random1 >= 0.33) {   
+        $dresser1 = "largeDresser"; } 
+    else {   
+        $dresser1 = "mediumDresser";    }
+
+    //****** WALL DECOR ******//
+    // we are equally likely to create wallFlower, lightStrip, or poster
+    if ($random2 <= 0.33) {
+        $wallDecor1 = "wallFlower"; }
+    else if ($random2 <= 0.66 && $random2 > 0.33) {
+        $wallDecor1 = "lightStrip"; }
+    else {
+        $wallDecor1 = "poster"; }
+
+    //****** RUG ******//
+    // we have a 66% chance of making a rug
+    if ($random3 <= 0.33) {
+        $rug = "squareRug"; 
+        setAttr ($rug + ".scaleX") 14;
+        setAttr ($rug + ".scaleZ") 10; }
+    else if ($random3 <= 0.66 && $random3 > 0.33) {
+        $rug = "circleRug"; 
+        setAttr ($rug + ".scaleX") 8;
+        setAttr ($rug + ".scaleZ") 6; }
+    
+    // if the room is medium sized we add a second wall decor 
+    // and change the size of the rug
+    if ($roomSize == 2) {
+        if ($random3 <= 0.33) {
+            $wallDecor2 = "lightStrip"; }
+        else if ($random3 <= 0.66 && $random3 > 0.33) {
+            $wallDecor2 = "poster"; }
+        else if ($random3 > 0.66) {
+            $wallDecor2 = "wallFlower"; }
+
+        if ($rug == "squareRug") {
+            setAttr ($rug + ".scaleX") 20;
+            setAttr ($rug + ".scaleZ") 16;
+        }
+        else if ($rug == "circleRug") {
+            setAttr ($rug + ".scaleX") 12;
+            setAttr ($rug + ".scaleZ") 10;
+        }
+    }
+    // if the room is large sized we add a third wall decor 80%
+    // of the time, and change the size of the rug
+    if ($roomSize == 3) {
+
+        if ($random3 <= 0.33) {
+            $wallDecor2 = "lightStrip"; }
+        else if ($random3 <= 0.66 && $random3 > 0.33) {
+            $wallDecor2 = "poster"; }
+        else if ($random3 > 0.66) {
+            $wallDecor2 = "wallFlower"; }
+            
+        if ($random3 <= 0.8) {
+            if ($random3 <= 0.26) {
+                $wallDecor3 = "wallFlower"; }
+            else if ($random3 <= 0.52 && $random3 > 0.26) {
+                $wallDecor3 = "lightStrip"; }
+            else if ($random3 > 0.52) {
+                $wallDecor3 = "poster"; } 
+        }
+
+        if ($rug == "squareRug") {
+            setAttr ($rug + ".scaleX") 26;
+            setAttr ($rug + ".scaleZ") 22;
+        }
+        else if ($rug == "circleRug") {
+            setAttr ($rug + ".scaleX") 16;
+            setAttr ($rug + ".scaleZ") 14;
+        }
+    }
+        
+
+    // ***************   Colorful / Childrens   ********************* 
+    if ($bedroomType == 1)
+    {
+        print ("Making a colorful / childrens room!\n");
+
+        //****** BED ******//
+        // childrens room so we use smallBed
+        $bed = "smallBed";
+
+       
+        //********** MEDIUM CHILDS ROOM ***********//
+        if ($roomSize == 2)
+        {
+            //****** TABLE ******//
+            // for children we are most likely to create the funTable, 
+            // but could also create the bedSideTable
+            if ($random4 < 0.8) {
+                $table1 = "funTable";   }
+            else {
+                $table1 = "bedSideTable";   }
+            
+            //****** CHAIR ******//
+            // for children we are most likely to create a bean bag chair,
+            // but could also create a comfy chair
+            if ($random5 < 0.7) {
+                $chair1 = "beanBagChair"; }
+            else {
+                $chair1 = "comfyChair"; }
+            // three quarters of the time, we make a second chair
+            if ($random1 <= 0.75)
+            {
+                if ($random4 <= 0.3)
+                {
+                    $chair2 = "beanBagChair";
+                }
+                else
+                {
+                    $chair2 = "comfyChair";
+                }
+            }
+            // we do not make a second dresser in a medium childs room
+        }
+
+        //********** LARGE CHILDS ROOM **********//
+        if ($roomSize == 3)
+        {
+            // create a second table
+            if ($table1 == "funTable") {
+                $table2 = "bedSideTable"; }
+            else {
+                $table2 = "funTable"; }
+
+            // create a second chair
+            if ($random1 < 0.5) {
+                $chair2 = "beanBagChair"; }
+            else {
+                $chair2 = "comfyChair"; }
+
+            // create a second dresser 80% of the time
+            if ($random2 < 0.8)
+            {
+                if ($random2 <= 0.26) {
+                    $dresser2 = "largeDresser"; }
+                else if ($random2 <= 0.52 && $random2 > 0.26) {
+                    $dresser2 = "mediumDresser"; }
+                else if ($random2 > 0.52) {
+                    $dresser2 = "modDresser"; }
+            }
+            
+        }
+        
+    }
+    //*********************   Teen Bedrooms  ***********************\\
+    else if ($bedroomType == 2 || $bedroomType == 3)
+    {
+        print ("Making a teens room!\n");
+
+        //****** BED ******// 
+        // teens room can have small or large Bed
+        if ($random1 <= 0.5) {
+            $bed = "smallBed"; }
+        else {
+            $bed = "largeBed"; }
+        
+        //********** MEDIUM TEEN ROOM **********//
+        if ($roomSize == 2)
+        {
+            //****** TABLE ******//
+            // teen rooms are equally likely to have the fun, work, and bedside table
+            if ($random4 < 0.33) {
+                $table1 = "funTable"; }
+            else if ($random4 < 0.66 && $random4 >= 0.33) {
+                $table1 = "bedSideTable"; }
+            else if ($random4 >= 0.66) {
+                $table1 = "workTable"; }
+            
+            //****** CHAIR ******//
+            // teen rooms are equally likely to have beanbag, comfy and work chairs
+            if ($random5 < 0.4) {
+                $chair1 = "beanBagChair"; }
+            else if ($random5 < 0.8 && $random5 >= 0.4) {
+                $chair1 = "comfyChair"; }
+            else if ($random5 >= 0.8) {
+                $chair1 = "deskChair"; }
+            // 30% of the time we create a second chair
+            if ($random1 <= 0.3) {
+                if ($random1 <= 0.1) {
+                    $chair2 = "comfyChair"; }
+                else if ($random1 <= 0.2 && $random1 > 0.1) {
+                    $chair2 = "deskChair"; }
+                else if ($random1 > 0.2) {
+                    $chair2 = "beanBagChair"; }
+            }
+
+            // 30% of the time we create a second dresser
+            if ($random2 < 0.3) {
+                if ($random2 <= 0.1) {
+                    $dresser2 = "largeDresser"; }
+                else if ($random2 <= 0.2 && $random2 > 0.1) {
+                    $dresser2 = "mediumDresser"; }
+                else if ($random2 > 0.2) {
+                    $dresser2 = "modDresser"; }
+            }
+        }
+
+        //********** LARGE TEEN ROOM **********//
+        if ($roomSize == 3)
+        {
+            // create a second table
+            if ($table1 == "funTable") {
+                if ($random5 < 0.5) {
+                    $table2 = "bedSideTable"; }
+                else  {
+                    $table2 = "workTable"; }
+            }
+            else if ($table1 == "bedSideTable") {
+                if ($random5 < 0.5) {
+                    $table2 = "workTable"; }
+                else  {
+                    $table2 = "funTable"; }
+            }
+            else {
+                if ($random5 < 0.5) {
+                    $table2 = "funTable"; }
+                else  {
+                    $table2 = "bedSideTable"; }
+            }
+
+            // create a second chair
+            if ($random1 <= 0.33) {
+                $chair2 = "comfyChair"; }
+            else if ($random1 <= 0.66 && $random1 > 0.33) {
+                $chair2 = "deskChair"; }
+            else if ($random1 > 0.66) {
+                $chair2 = "beanBagChair"; }
+            
+            // create a second dresser 80% of the time
+            if ($random2 < 0.8) {
+                if ($random2 <= 0.26) {
+                    $dresser2 = "largeDresser"; }
+                else if ($random2 <= 0.52 && $random2 > 0.26) {
+                    $dresser2 = "mediumDresser"; }
+                else if ($random2 > 0.52) {
+                    $dresser2 = "modDresser"; }
+            }
+        }       
+    }
+    
+    //****************   Earthy / Adult  ******************//
+    else if ($bedroomType == 4)
+    {
+        print ("Making an earthy / adult bedroom!\n");
+        
+        //****** BED ******//
+        // adult room so we use largeBed
+        $bed = "largeBed";
+        
+        //********* MEDIUM ADULT ROOM **********//
+        if ($roomSize == 2)
+        {
+            //****** TABLE ******//
+            // adult rooms are are most likely to have the workTable, 
+            // less likely to have the bedSideTable
+            if ($random4 < 0.75) {
+                $table1 = "workTable"; }
+            else {
+                $table1 = "bedSideTable"; }
+
+            //****** CHAIR ******//
+            // adult rooms can have comfy and work chairs
+            if ($random5 <= 0.6) {
+                $chair1 = "comfyChair"; }
+            else  {
+                $chair1 = "deskChair"; }
+            // half the time we create a second chair
+            if ($random1 <= 0.5) {
+                if ($random1 <= 0.25) {
+                    $chair2 = "deskChair"; }
+                else {
+                    $chair2 = "comfyChair"; }
+            }
+
+            // 30% of the time we create a second dresser
+            if ($random2 <= 0.3) {
+                if ($random2 <= 0.1) {
+                    $dresser2 = "largeDresser"; }
+                else if ($random2 <= 0.2 && $random2 > 0.1) {
+                    $dresser2 = "modDresser"; }
+                else if ($random2 > 0.2) {
+                    $dresser2 = "mediumDresser"; }
+            }
+        }
+
+        //********** LARGE ADULT ROOM **********//
+        if ($roomSize == 3)
+        {
+            // create a second table 
+            if ($table1 == "workTable") {
+                $table2 = "bedSideTable"; }
+            else  {
+                $table2 = "workTable"; }
+
+            // create a second chair
+            if ($random1 < 0.5) {
+                $chair2 = "comfyChair";    }
+            else if ($random1 <= 0.66 && $random1 > 0.33) {
+                $chair2 = "deskChair"; }
+            
+            // create a second dresser
+            if ($random2 <= 0.33) {
+                $dresser2 = "largeDresser"; }
+            else if ($random2 <= 0.66 && $random2 > 0.33) {
+                $dresser2 = "mediumDresser"; }
+            else if ($random2 > 0.66) {
+                $dresser2 = "modDresser"; }
+        }
+    }
+    
+    else {
+        print ("No bedroom type selected!");
+        // this should not be possible
+    }
+    
+    // create an array to store the objects as they are shown
+    string $objsArr[] = {};
+    int $arrIndex = 0;
+    
+    // show all the hidden objects
+    showHidden $bed;
+    // add the object to the array of shown objects
+    $objsArr[$arrIndex] = $bed;
+    // increment the index of the object array
+    $arrIndex++;
+    // place the object in the room
+    simplePlacement($bed, $roomSize);
+    // check if the object has any collisions
+    checkCollisions($bed, $roomSize, $objsArr);
+    // do this for each object in the room
+    
+    showHidden $dresser1;
+    $objsArr[$arrIndex] = $dresser1;
+    $arrIndex++;
+    simplePlacement($dresser1, $roomSize);
+    checkCollisions($dresser1, $roomSize, $objsArr);
+    
+    // with some objects that are not visible in every room,
+    // we need to check if the object was ever set
+    if ($dresser2 != "" && $dresser2 != $dresser1) {
+        showHidden $dresser2;
+        $objsArr[$arrIndex] = $dresser2;
+        $arrIndex++;
+        simplePlacement($dresser2, $roomSize);
+    }
+    
+    if ($table1 != "") {
+        showHidden $table1;
+        $objsArr[$arrIndex] = $table1;
+        $arrIndex++;
+        simplePlacement($table1, $roomSize);
+    }
+    
+    if ($table2 != "" && $table2 != $table1) {
+        showHidden $table2;
+        $objsArr[$arrIndex] = $table2;
+        $arrIndex++;
+        simplePlacement($table2, $roomSize);
+    }
+    
+    if ($chair1 != "") {
+        showHidden $chair1;
+        $objsArr[$arrIndex] = $chair1;
+        $arrIndex++;
+        simplePlacement($chair1, $roomSize);
+    }
+    
+    if ($chair2 != "" && $chair2 != $chair1) {
+        showHidden $chair2;
+        $objsArr[$arrIndex] = $chair2;
+        $arrIndex++;
+        simplePlacement($chair2, $roomSize);
+    }
+    // do a simpler room collision check to try and alleviate
+    // the really terrible object overlaps
+    checkRoomCollisions($objsArr);
+    
+    // show the wall decor
+    showHidden $wallDecor1;
+    if ($wallDecor2 != "") {
+        showHidden $wallDecor2;
+    }
+    if ($wallDecor3 != "") {
+        showHidden $wallDecor3;
+    }
+    // place the wall decor along the wall
+    placeWallDecor($wallDecor1, $wallDecor2, $wallDecor3, $roomSize);
+    
+    // show the rug if one exists
+    if ($rug != "") {
+        showHidden $rug;
+    }
+    
+    
+    /********* ROOM MESS **********/
+    // show messes if they are requested
+    // 1 = spotless
+    // 2 = average mess
+    // 3 = very messy
+    int $mess = `radioButtonGrp -q -select bedroomMessRadio`;
+    // if $mess == 1 we don't do anything - no mess
+    if ($mess == 2)
+    {
+        // average mess = we add three small messes
+        int $randMess1 = rand(1, 7);
+        int $randMess2 = rand(1, 7); 
+        int $randMess3 = rand(1, 7); 
+        while ($randMess1 == $randMess2)
+        {
+            $randMess2 = rand(1, 7);
+        }
+        while ($randMess3 == $randMess1 || $randMess3 == $randMess2)
+        {
+            $randMess3 = rand(1, 7); 
+        }
+        // at this point we have three unique messes
+        showHidden ("smallMess" + $randMess1);
+        simplePlacement("smallMess" + $randMess1, $roomSize);    
+        showHidden ("smallMess" + $randMess2);  
+        simplePlacement("smallMess" + $randMess2, $roomSize);  
+        showHidden ("smallMess" + $randMess3); 
+        simplePlacement("smallMess" + $randMess3, $roomSize);  
+    }
+    else if ($mess == 3)
+    {
+        // very messy = we add three small messes and three big messes
+        int $randMess1 = rand(1, 7);
+        int $randMess2 = rand(1, 7); 
+        int $randMess3 = rand(1, 7); 
+        while ($randMess1 == $randMess2)
+        {
+            $randMess2 = rand(1, 7);
+        }
+        while ($randMess3 == $randMess1 || $randMess3 == $randMess2)
+        {
+            $randMess3 = rand(1, 7); 
+        }
+        // at this point we have three unique small messes
+        showHidden ("smallMess" + $randMess1);
+        simplePlacement("smallMess" + $randMess1, $roomSize);    
+        showHidden ("smallMess" + $randMess2);  
+        simplePlacement("smallMess" + $randMess2, $roomSize);  
+        showHidden ("smallMess" + $randMess3); 
+        simplePlacement("smallMess" + $randMess3, $roomSize);  
+        
+        $randMess1 = rand(1, 5);
+        $randMess2 = rand(1, 5); 
+        $randMess3 = rand(1, 5); 
+        while ($randMess1 == $randMess2)
+        {
+            $randMess2 = rand(1, 5);
+        }
+        while ($randMess3 == $randMess1 || $randMess3 == $randMess2)
+        {
+            $randMess3 = rand(1, 5); 
+        }
+        // at this point we have three unique big messes
+        showHidden ("bigMess" + $randMess1); 
+        simplePlacement("bigMess" + $randMess1, $roomSize);    
+        showHidden ("bigMess" + $randMess2);   
+        simplePlacement("bigMess" + $randMess2, $roomSize); 
+        showHidden ("bigMess" + $randMess3);  
+        simplePlacement("bigMess" + $randMess3, $roomSize); 
+    }
+
+    
+    /********* ROOM COLORS **********/
+    // adding colors to the object material
+    // depending on type of room
+    // get our global arrays for the materials and colors
+    global string $materials[];
+    global float $ColorfulColors[];
+    global float $BlueGreenColors[];
+    global float $PinkOrangeColors[];
+    global float $EarthyColors[];
+    // create a number to randomize colors
+    int $randNum = 0;
+    
+    //********** CHILDS COLORFUL **********/
+    if ($bedroomType == 1)
+    {
+        // set the colors for the wallMat, bedMat, tableMat,
+        //    chairMat, dresserMat, wallDecorMat, and rugMat
+        for ($mat in $materials)
+        {
+            $randNum = rand(0, 15);
+            //print("color: " +  $ColorfulColors[($randNum*3)] + "   random number: " + $randNum + "\n");
+            setAttr ($mat + ".color") -type double3 $ColorfulColors[($randNum*3)] $ColorfulColors[($randNum*3)+1] $ColorfulColors[($randNum*3)+2]; 
+        }
+    }
+    //********** BLUE GREEN TEEN **********/
+    if ($bedroomType == 2)
+    {
+        // set the colors for the wallMat, bedMat, tableMat,
+        //    chairMat, dresserMat, wallDecorMat, and rugMat
+        for ($mat in $materials)
+        {
+            $randNum = rand(0, 12);
+            //print("color: " +  $BlueGreenColors[($randNum*3)] + "   random number: " + $randNum + "\n");
+            setAttr ($mat + ".color") -type double3 $BlueGreenColors[($randNum*3)] $BlueGreenColors[($randNum*3)+1] $BlueGreenColors[($randNum*3)+2]; 
+        }
+    }
+        //********** CHILDS COLORFUL **********/
+    if ($bedroomType == 3)
+    {
+        // set the colors for the wallMat, bedMat, tableMat,
+        //    chairMat, dresserMat, wallDecorMat, and rugMat
+        for ($mat in $materials)
+        {
+            $randNum = rand(0, 12);
+            //print("color: " +  $PinkOrangeColors[($randNum*3)] + "   random number: " + $randNum + "\n");
+            setAttr ($mat + ".color") -type double3 $PinkOrangeColors[($randNum*3)] $PinkOrangeColors[($randNum*3)+1] $PinkOrangeColors[($randNum*3)+2]; 
+        }
+    }
+        //********** CHILDS COLORFUL **********/
+    if ($bedroomType == 4)
+    {
+        // set the colors for the wallMat, bedMat, tableMat,
+        //    chairMat, dresserMat, wallDecorMat, and rugMat
+        for ($mat in $materials)
+        {
+            $randNum = rand(0, 12);
+            setAttr ($mat + ".color") -type double3 $EarthyColors[($randNum*3)] $EarthyColors[($randNum*3)+1] $EarthyColors[($randNum*3)+2]; 
+        }
+    }
+
+}
+
+
+// simplePlacement
+//    a function to simply place an object in the scene
+//    this calls the getBedPos and getPos functions to place
+//    the object in x,y,z coordiniates
+proc simplePlacement(string $objName, int $roomSize)
+{
+    // randomize the location based on room size
+    float $XZPos[];
+    if ($objName == "largeBed" || $objName == "smallBed")
+    {
+        $XZPos = `getBedPos($roomSize)`;
+    }
+    else
+    {
+        $XZPos = `getPos($roomSize)`;
+    }
+    print(" OG pos: " + $XZPos[0] + " , " + $XZPos[1] + "\n");
+    // move the object to the random location
+    select -cl;
+    select $objName;
+    xform -translation $XZPos[0] 0 $XZPos[1];
+    select -cl;
+}
+
+
+// checkCollisions
+//  this function is to make sure that in a small bedroom, the bed
+//  and the dresser are not overlapping. I was planning on using this to
+//  check all objects in the room collisions but those calculations were
+//  getting out of hand (manually checking every object's bounding box with
+//  every other object's bounding box, then if there is an overlap needing to 
+//  regenerate a position and go through all checks again), so in the end it
+//  is only used for the bed and dresser collisions with each other and the walls.
+proc checkCollisions(string $objName, int $roomSize, string $objsArr[])
+{
+    // get the bounding box of our object
+    // these xform -q -bb calls are querying for the bounding box
+    // of the object in the call - this returns 6 floats:
+    //        minx, miny, minz, maxx, maxy, maxz of the bounding box
+    float $objPos[] = `xform -q -bb $objName`;
+    
+    // get the bounding boxes for the walls since they are stagnant
+    float $leftWallPos[] = `xform -q -bb leftWall`;
+    float $middleWallPos[] = `xform -q -bb middleWall`;
+    float $rightWallPos[] = `xform -q -bb rightWall`;
+
+     // check for intersections
+    // first with other objects in the scene (stored in objsArr)
+    int $arrSize = `size $objsArr`;
+    // the last object in the array is our current object
+    // so we only need to loop through size-1
+    if ($arrSize == 1)
+    {
+        // only need to check wall collision
+        // if the minX of objPos is < maxX of leftWall, we are out of bounds
+        // if the maxX of objPos is > minX of rightWall, we are out of bounds
+        // if the minZ of objPos is < maxZ of middleWall, we are out of bounds
+        if ($objPos[0] < $leftWallPos[3] || $objPos[3] > $rightWallPos[0] || $objPos[2] < $middleWallPos[5]){
+        	print("\nwe are colliding\n");
+        	// we are colliding, so call the function again to get a 
+        	// new coordinate for the object
+        	simplePlacement($objName, $roomSize);
+        	checkCollisions($objName, $roomSize, $objsArr);
+        }
+    }
+    else
+    {
+        int $i = 0;
+        for ($i = 0; $i < ($arrSize-1); $i++)
+        {
+            print ("we are comparing " + $objName + " with " + $objsArr[$i] + "\n");
+            // get the bounding box of the object we are comparing with
+            float $obj2Pos[] = `xform -q -bb $objsArr[$i]`;
+            // if obj's Min or Max X is between or equal to obj2's Min and Max X
+            // OR obj2's Min or Max X is between or equal to obj's Min and Max X
+            //    AND obj's Min or Max Z is between or equal to obj2's Min and Max Z
+            //    OR objw's Min or Max Z is between or equal to obj's Min and Max Z
+            //    then we have an intersection
+            if ((($objPos[0] >= $obj2Pos[0] && $objPos[0] <= $obj2Pos[3]) || ($objPos[3] >= $obj2Pos[0] && $objPos[3] <= $obj2Pos[3]))
+                    || (($obj2Pos[0] >= $objPos[0] && $obj2Pos[0] <= $objPos[3]) || ($obj2Pos[3] >= $objPos[0] && $obj2Pos[3] <= $objPos[3])))
+            {
+                // we have an X intersection
+                if ((($objPos[2] >= $obj2Pos[2] && $objPos[2] <= $obj2Pos[5]) || ($objPos[5] >= $obj2Pos[2] && $objPos[5] <= $obj2Pos[5]))
+                        || (($obj2Pos[2] >= $objPos[2] && $obj2Pos[2] <= $objPos[5]) || ($obj2Pos[5] >= $objPos[2] && $obj2Pos[5] <= $objPos[5])))
+                {
+                    // and we have a Z intersection
+                    print("\nwe have an object collision\n");
+                    // the objects are intersecting, so we need a new coordinate
+                    $XZPos = `getPos($roomSize)`;
+                    print("   Z-intersection pos: " + $XZPos[0] + " , " + $XZPos[1] + "\n");
+                    // move the object to the random location
+                    select -cl;
+                    select $objName;
+                    xform -translation $XZPos[0] 0 $XZPos[1];
+                    select -cl;
+                    // get the bounding box of our object
+                    $objPos = `xform -q -bb $objName`;
+                    // repeat the comparison with the current object
+                    $i--;
+                    continue;
+                }
+                else
+                {
+                    // we do not have an intersection with an object, so check
+                    // if there is an intersection with a wall
+                    if ($objPos[0] < $leftWallPos[3] || $objPos[3] > $rightWallPos[0] || $objPos[2] < $middleWallPos[5]){
+                        print("\nwe have a wall collision\n");
+                        // we are colliding, so get a new coordinate for the object
+                        $XZPos = `getPos($roomSize)`;
+                        print("    wall-intersection pos: " + $XZPos[0] + " , " + $XZPos[1] + "\n");
+                        // move the object to the random location
+                        select -cl;
+                        select $objName;
+                        xform -translation $XZPos[0] 0 $XZPos[1];
+                        select -cl;
+                        // get the bounding box of our object
+                        $objPos = `xform -q -bb $objName`;
+                        // repeat the comparison with the current object
+                        $i--;
+                        continue;
+                    }
+                }
+            }
+            else
+            {
+                // we do not have an intersection with an object, so check
+                // if there is an intersection with a wall
+                if ($objPos[0] < $leftWallPos[3] || $objPos[3] > $rightWallPos[0] || $objPos[2] < $middleWallPos[5]){
+                    print("\nwe have a wall collision\n");
+                    // we are colliding, so get a new coordinate for the object
+                    $XZPos = `getPos($roomSize)`;
+                    print("        2nd wall-intersection pos: " + $XZPos[0] + " , " + $XZPos[1] + "\n");
+                    // move the object to the random location
+                    select -cl;
+                    select $objName;
+                    xform -translation $XZPos[0] 0 $XZPos[1];
+                    select -cl;
+                    // get the bounding box of our object
+                    $objPos = `xform -q -bb $objName`;
+                    // repeat the comparison with the current object
+                    $i--;
+                    continue;
+                }
+            } 
+        }
+    }
+}
+
+
+// checkRoomCollisions
+//  this function very simply checks for bounding box collisions
+//  after all objects are placed in the bedroom. It might not fix all 
+//  collisions, but it goes through once and at least moves any objects
+//  with severe overlap.
+proc checkRoomCollisions(string $objsArr[])
+{
+    // get the amount of objects
+    int $arrSize = `size $objsArr`;
+    // get the bounding boxes for the walls since they are stagnant
+    float $leftWallPos[] = `xform -q -bb leftWall`;
+    float $middleWallPos[] = `xform -q -bb middleWall`;
+    float $rightWallPos[] = `xform -q -bb rightWall`;
+    // loop through all objects THREE TIMES and compare
+    int $i = 0;
+    int $j = 0;
+    int $k = 0;
+    for ($k = 0; $k < 3; $k++)
+    {
+        for ($i = 0; $i < ($arrSize-1); $i++)
+        {
+            // get the bounding box of object 1
+            float $obj1Pos[] = `xform -q -bb $objsArr[$i]`;
+            
+            for ($j = $i+1; $j < $arrSize; $j++)
+            {
+                // get the bounding box of object 2
+                float $obj2Pos[] = `xform -q -bb $objsArr[$j]`;
+            
+                // check if object 1 and 2 are intersecting (with some lee-way)
+                if ((($obj1Pos[0] > ($obj2Pos[0]+0.25) && $obj1Pos[0] < ($obj2Pos[3]-0.25)) || ($obj1Pos[3] > ($obj2Pos[0]+0.25) && $obj1Pos[3] < ($obj2Pos[3]-0.25)))
+                        || ((($obj2Pos[0]-0.25) > $obj1Pos[0] && ($obj2Pos[0]+0.25) < $obj1Pos[3]) || (($obj2Pos[3]-0.25) > $obj1Pos[0] && ($obj2Pos[3]+0.25) < $obj1Pos[3])))
+                {
+                    // we have an X intersection
+                    if ((($obj1Pos[2] > ($obj2Pos[2]+0.25) && $obj1Pos[2] < ($obj2Pos[5]-0.25)) || ($obj1Pos[5] > ($obj2Pos[2]+0.25) && $obj1Pos[5] < ($obj2Pos[5]-0.25)))
+                            || ((($obj2Pos[2]-0.25) > $obj1Pos[2] && ($obj2Pos[2]+0.25) < $obj1Pos[5]) || (($obj2Pos[5]-0.25) > $obj1Pos[2] && ($obj2Pos[5]+0.25) < $obj1Pos[5])))
+                    {
+                        print("\nwe have an object collision\n");
+                        print("\n" + $objsArr[$i] + " colliding with " + $objsArr[$j] + "\n");
+                        float $pos1[] = `xform -q -t -ws $objsArr[$i]`;
+                        print("  obj1 pos: " + $pos1[0] + " , " + $pos1[1] + " , " + $pos1[2] + "\n");
+                        int $randSeed = rand(0, 2);
+                        // the objects are intersecting, so we just slightly move one
+                        select -cl;
+                        select $objsArr[$j];
+                        float $movingPos[] = `xform -q -t -ws $objsArr[$j]`;
+                        print("  obj2 pos: " + $movingPos[0] + " , " + $movingPos[1] + " , " + $movingPos[2] + "\n");
+                        if ($movingPos[0] >= 0)
+                        {
+                            if ($randSeed == 0)
+                            {
+                                xform -translation ($movingPos[0]-2.0) $movingPos[1] $movingPos[2];
+                            }
+                            else
+                            {
+                                xform -translation ($movingPos[0]-8.0) $movingPos[1] $movingPos[2];
+                            }
+                            
+                        }
+                        else
+                        {
+                            if ($randSeed == 0)
+                            {
+                                xform -translation ($movingPos[0]+3) $movingPos[1] $movingPos[2];
+                            }
+                            else
+                            {
+                                xform -translation ($movingPos[0]+7) $movingPos[1] $movingPos[2];
+                            }
+                        }
+                        // update movingPos with the new value
+                        $movingPos = `xform -q -t -ws $objsArr[$j]`;
+                        if ($movingPos[2] >= 0)
+                        {
+                            if ($randSeed == 0)
+                            {
+                                xform -translation $movingPos[0] $movingPos[1] ($movingPos[2]-3);
+                            }
+                            else
+                            {
+                                xform -translation $movingPos[0] $movingPos[1] ($movingPos[2]-7);
+                            }
+                            
+                        }
+                        else
+                        {
+                            if ($randSeed == 0)
+                            {
+                                xform -translation $movingPos[0] $movingPos[1] ($movingPos[2]+2);
+                            }
+                            else
+                            {
+                                xform -translation $movingPos[0] $movingPos[1] ($movingPos[2]+8);
+                            }
+                        }
+                        select -cl;
+                    }
+                }
+            }
+            // check if our object 1 intersects with a wall
+            if ($obj1Pos[0] < $leftWallPos[3])
+            {
+                select -cl;
+                select $objsArr[$i];
+                float $movingPos[] = `xform -q -t -ws`;
+                xform -translation ($movingPos[0]+3) $movingPos[1] $movingPos[2];
+            }
+            if ($obj1Pos[3] > $rightWallPos[0])
+            {
+                select -cl;
+                select $objsArr[$i];
+                float $movingPos[] = `xform -q -t -ws`;
+                xform -translation ($movingPos[0]-3) $movingPos[1] $movingPos[2];
+            }
+            if ($obj1Pos[2] < $middleWallPos[5])
+            {
+                select -cl;
+                select $objsArr[$i];
+                float $movingPos[] = `xform -q -t -ws`;
+                xform -translation $movingPos[0] $movingPos[1] ($movingPos[2]+3);
+            }
+        }
+    }
+    // loop through once more to make sure nothing is overlapping with the wall
+    for ($i = 0; $i < $arrSize; $i++)
+    {
+        // get the bounding box of object 1
+        float $obj1Pos[] = `xform -q -bb $objsArr[$i]`;
+        // check if our object 1 intersects with a wall
+        if ($obj1Pos[0] < $leftWallPos[3])
+        {
+            select -cl;
+            select $objsArr[$i];
+            float $movingPos[] = `xform -q -t -ws`;
+            xform -translation ($movingPos[0]+3) $movingPos[1] $movingPos[2];
+        }
+        if ($obj1Pos[3] > $rightWallPos[0])
+        {
+            select -cl;
+            select $objsArr[$i];
+            float $movingPos[] = `xform -q -t -ws`;
+            xform -translation ($movingPos[0]-3) $movingPos[1] $movingPos[2];
+        }
+        if ($obj1Pos[2] < $middleWallPos[5])
+        {
+            select -cl;
+            select $objsArr[$i];
+            float $movingPos[] = `xform -q -t -ws`;
+            xform -translation $movingPos[0] $movingPos[1] ($movingPos[2]+3);
+        }
+    }
+}
+
+
+// getBedPos
+// a function to create the position of the bed
+// there was an issue where a large bed in a small room
+// created an infinite loop since there were situations where
+// no other furnature fit in the room, so this is to prevent that 
+// from happening
+proc float[] getBedPos(int $roomSize)
+{
+    float $XZPos[] = { 0, 0 };
+    int $randSeed = rand(0, 2);
+    int $randSeed2 = rand(0, 2);
+
+    // medium room
+    if ($roomSize == 2)
+    {
+        if ($randSeed == 0)
+        {
+            $XZPos[0] = rand(-9, -3.5);
+        }
+        else
+        {
+            $XZPos[0] = rand(3.5, 9);
+        }
+        if ($randSeed2 == 0)
+        {
+            $XZPos[1] = rand(-13, -3.5);
+        }
+        else
+        {
+            $XZPos[1] = rand(3.5, 13);
+        }
+    }
+    // large room
+    else if ($roomSize == 3)
+    {
+        $XZPos[0] = rand(-19, 20);
+        $XZPos[1] = rand(-19, 18);
+    }
+    // small room
+    else
+    {
+        if ($randSeed == 0)
+        {
+            $XZPos[0] = rand(-4.25, -2.1);
+        }
+        else
+        {
+            $XZPos[0] = rand(2, 4.25);
+        }
+        if ($randSeed2 == 0)
+        {
+            $XZPos[1] = rand(-9, -2.5);
+        }
+        else
+        {
+            $XZPos[1] = rand(2.5, 8);
+        }
+        
+    }
+
+    return $XZPos;
+}
+
+
+// getPos
+// a function to create the position of an object in the room
+// based on the room size constraints
+proc float[] getPos(int $roomSize)
+{
+    float $XZPos[] = { 0, 0 };
+
+    // medium room
+    if ($roomSize == 2)
+    {
+        $XZPos[0] = rand(-14, 15);
+        $XZPos[1] = rand(-14, 13); 
+    }
+    // large room
+    else if ($roomSize == 3)
+    {
+        $XZPos[0] = rand(-19, 20);
+        $XZPos[1] = rand(-19, 18);
+    }
+    // small room
+    else
+    {
+        $XZPos[0] = rand(-9, 10);
+        $XZPos[1] = rand(-9, 8);
+    }
+
+    return $XZPos;
+}
+
+
+// placeWallDecor
+//    this function places the wall decor onto the wall
+//    in the correct location and orientation
+proc placeWallDecor(string $wallDecor1, string $wallDecor2, string $wallDecor3, int $roomSize)
+{
+    print("wallDecor1: " + $wallDecor1 + ", wallDecor2: " + $wallDecor2 + ", wallDecor3: " + $wallDecor3 + "\n\n");
+    // place wallDecor1 against middleWall
+    // get the bounding boxes for the wall
+    float $middleWallPos[] = `xform -q -bb middleWall`;
+    select -cl;
+    select $wallDecor1;
+    xform -ro 0 0 0;
+    xform -translation 0 0 $middleWallPos[5];
+    select -cl;
+    
+    // place wallDecor2 against leftWall
+    if ($wallDecor2 != "")
+    {
+        float $leftWallPos[] = `xform -q -bb leftWall`;
+        select -cl;
+        select $wallDecor2;
+        xform -ro 0 -90 0;
+        xform -translation $leftWallPos[3] 0 0;
+        select -cl;
+    }
+    
+    // place wallDecor3 against rightWall
+    if ($wallDecor3 != "")
+    {
+        float $rightWallPos[] = `xform -q -bb rightWall`;
+        select -cl;
+        select $wallDecor3;
+        xform -ro 0 90 0;
+        xform -translation $rightWallPos[0] 0 0;
+        select -cl;
+    }
+}
+
+
+
+// createSlider
+// creates a slider to control the time of day
+proc createSlider()
+{   
+    // check if we have already created a slider
+    global int $createdSlider;
+    if ($createdSlider == 0)
+    {
+        // we can create a new slider
+        $createdSlider = 1;
+    
+        // create and connect a space locator node to the house X movement
+        spaceLocator -n "sliderLocator";
+        // create a nurbs circle
+        circle -n "slider" -r 2;
+        // parent the circle to the spaceLocator (locator is parent)
+        // we parent so we can move the slider locator wherever is convenient
+        parent slider sliderLocator;
+        // make the slider visible
+        setAttr "sliderLocator.translateY" 5;
+        // we only want to manipulate the slider on the Y axis
+        // because of this, we can lock the other attributes
+        setAttr -lock true "slider.translateX";
+        setAttr -lock true "slider.translateZ";
+        // limit the slider movements to just 10 units
+        select slider;
+        transformLimits -ety on on;
+        transformLimits -ty 0 10;
+        
+        // create a dome light for light
+        load_rfm("24.4", "rfm2.api.nodes.create_and_select('PxrDomeLight')");
+        
+        // edit the color based on the height of the slider
+        // change colors at certain heights, between those heights
+        // change the intensity (or ambient color or something)
+        
+        // start with a morning yellow
+        setAttr "PxrDomeLightShape.lightColorR" 0.931;
+        setAttr "PxrDomeLightShape.lightColorG" 0.646;
+        setAttr "PxrDomeLightShape.lightColorB" 0.18;
+        // break any existing connections
+
+        
+        // create an expression to change the color
+        expression -o "PxrDomeLightShape.lightColorR" -s "if (slider.translateY >= 2 && slider.translateY < 4) PxrDomeLightShape.lightColorR = (0.931 - ((slider.translateY-2) * 0.314));  else if (slider.translateY >= 4 && slider.translateY < 6) PxrDomeLightShape.lightColorR = (0.314 - ((slider.translateY-4) * 0.124));  else if (slider.translateY >= 6 && slider.translateY < 8) PxrDomeLightShape.lightColorR = (0.067 + ((slider.translateY-6) * 0.1415));  else if (slider.translateY >= 8 && slider.translateY < 10) PxrDomeLightShape.lightColorR = (0.349 - ((slider.translateY-8) * 0.161));  else if (slider.translateY == 10) PxrDomeLightShape.lightColorR = 0.012;";
+        
+        expression -o "PxrDomeLightShape.lightColorG" -s "if (slider.translateY < 2) PxrDomeLightShape.lightColorG = (0.646 + (slider.translateY * 0.143));  else if (slider.translateY >= 2 && slider.translateY < 4) PxrDomeLightShape.lightColorG = (0.927 - ((slider.translateY-2) * 0.1995));  else if (slider.translateY >= 4 && slider.translateY < 6) PxrDomeLightShape.lightColorG = (0.535 - ((slider.translateY-4) * 0.15));  else if (slider.translateY >= 6 && slider.translateY < 8) PxrDomeLightShape.lightColorG = (0.236 - ((slider.translateY-6) * 0.025));  else if (slider.translateY >= 8 && slider.translateY < 10) PxrDomeLightShape.lightColorG = (0.186 - ((slider.translateY-8) * 0.0835));  else if (slider.translateY == 10) PxrDomeLightShape.lightColorG = 0.008;";
+        
+        expression -o "PxrDomeLightShape.lightColorB" -s "if (slider.translateY < 2) PxrDomeLightShape.lightColorB = (0.18 + (slider.translateY * 0.4));  else if (slider.translateY >= 2 && slider.translateY < 4) PxrDomeLightShape.lightColorB = (0.967 + ((slider.translateY-2) * 0.0165));  else if (slider.translateY >= 4 && slider.translateY < 6) PxrDomeLightShape.lightColorB = (1 - ((slider.translateY-4) * 0.2035));  else if (slider.translateY >= 6 && slider.translateY < 8) PxrDomeLightShape.lightColorB = (0.594 - ((slider.translateY-6) * 0.0895));  else if (slider.translateY >= 8 && slider.translateY < 10) PxrDomeLightShape.lightColorB = (0.416 - ((slider.translateY-8) * 0.1555));  else if (slider.translateY == 10) PxrDomeLightShape.lightColorB = 0.046;";
+        
+    }
+}
+
+
+
+
+
+
+// resetScene
+// hide all visible objects in the scene and reset material colors 
+// to clean the slate
+proc resetScene()
+{
+    print (" reseting the scene\n");
+    // clear the selection
+    select -cl;
+    // select all visible objects in the scene
+    select -all -vis;
+    // from the selection of all visible objects, 
+    // I am making a list of only the selected dag objects
+    // and storing those in an array
+    string $objArr[] = `ls -dag -sl`;
+    // now I am going through the array of dag objects
+    // and hiding each object one by one
+    for ($obj in $objArr)
+    {
+        hide $obj;
+    }
+    
+    // going through the materials array and reseting all to white
+    global string $materials[];
+    
+    for ($mat in $materials)
+    {
+        setAttr ($mat + ".color") -type double3 1.0 1.0 1.0;
+    }
+    // delete the slider and the dome light if they exist
+    global int $createdSlider;
+    if ($createdSlider != 0)
+    {
+        delete slider;
+        delete sliderLocator;
+        delete PxrDomeLight;
+        $createdSlider = 0;
+    }
+}
+
+
+// cleanUp
+// deletes the UI and will implement any other clean up 
+proc cleanUp(string $bedroomUI)
+{
+    print ("cleaning the scene up\n");
+    
+    // delete the UI window
+    deleteUI $bedroomUI;
+}
