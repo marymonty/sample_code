@@ -1,0 +1,68 @@
+// Mary Montgomery
+// Montgomery_Assignment02.mel
+
+// with the slider I will control:
+//    the eyeball scale - up = large, down = small
+//    the eyebrow rotation - up = pointed up (backslash) happy, down = pointed down (forward slash) angry
+//    the tranlation of corner of mouth vertices, up = smile, down = frown
+
+    
+// setup creating the slider and sliderLocator
+// create a locator 
+spaceLocator -n "sliderLocator";
+// create a nurbs circle
+circle -n "slider";
+// parent the circle to the spaceLocator (locator is parent)
+// we parent so we can move the slider locator wherever is convenient
+parent slider sliderLocator;
+// make the slider visible
+setAttr "sliderLocator.translateZ" 10;
+setAttr "sliderLocator.rotateY" 90;
+
+
+// we only want to manipulate the slider on the Y axis
+// because of this, we can lock the other attributes
+
+// lock the controller
+setAttr -lock true "slider.translateX";
+setAttr -lock true "slider.translateZ";
+
+
+// connect the slider to the eyebrow X axis rotation
+// to change the emotion
+connectAttr "slider.translateY" "eyebrow1.rotateX";
+connectAttr "slider.translateY" "eyebrow2.rotateX";
+
+
+// create multiplyDivide node
+createNode multiplyDivide -n "multDivNode";
+// we can set the type of operation by using the operation attribute
+// 1 = multiply, 2 = divide, 3 = power
+setAttr "multDivNode.operation" 2;
+
+// connect the input to the slider
+// we are giving the multDivNode two inputs - the slider translate value,
+// and the number to divide by in the operation
+connectAttr "slider.translateY" "multDivNode.input1X";
+// the scale and translate for the eyes and mouth respectively
+// is much faster than the eyebrows rotate, so we need to
+// even the movement with this large division
+setAttr "multDivNode.input2X" 16;
+
+
+// connect the multDivNode to the eyeball's X scale
+// we are controlling only the X axis scale so it looks like 
+// the eyeball is blinking and not disappearing
+connectAttr "multDivNode.outputX" "eye1.scaleX";
+connectAttr "multDivNode.outputX" "eye2.scaleX";
+
+
+// connect the multDivNode to the corners of the mouth (vertices) Y axis
+// by using the CVs of the points
+// this will control the smile / frown
+connectAttr "multDivNode.outputX" "lipsShape.pnts[2].pnty";
+connectAttr "multDivNode.outputX" "lipsShape.pnts[3].pnty";
+connectAttr "multDivNode.outputX" "lipsShape.pnts[14].pnty";
+connectAttr "multDivNode.outputX" "lipsShape.pnts[15].pnty";
+
+

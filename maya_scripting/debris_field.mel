@@ -1,0 +1,754 @@
+// Montgomery_Assignment07B
+
+// Debris Field
+
+// global for x and z lengths
+global float $x;
+global float $z;
+// global for second window name
+global string $secondWindow;
+
+// Making the first UI 
+// this UI will include Prompting for type(s) of debris, 
+// x y plane size for debris to position itself on (in this case x, y means ground plane),
+// and number of points where use does not want debris
+string $firstWindow = `window -title "Make Some Debris!" -w 300 -h 260`;
+columnLayout -adjustableColumn true -bgc 0.8 0.8 0.8;
+// checkbox's for types of debris
+text -label "Please specify the types of debris to create: " -h 30;
+checkBoxGrp -numberOfCheckBoxes 4 -labelArray4 "Rocks" "Metal" "Glass" "Trash" debrisType;
+// float values for x, z plane size
+text -label "Please specify the size of the x, z plane to scatter the debris on: " -h 30;
+floatField -annotation "X: " -minValue 1 -maxValue 1000 -value 25 xVal;
+floatField -annotation "Z: " -minValue 1 -maxValue 1000 -value 25 zVal;
+// int value for number of places they dont want debris
+text -label "Please specify the number of places you do NOT want debris: " -h 30;
+intField -minValue 0 -maxValue 10 -value 0 -step 1 noDebrisPts;
+// call the proc to customize debris with a button
+text -label "Let's get to customizing the Debris!" -h 30;
+button -label "Customize Debris" -command "customizeDebris($firstWindow, $debrisTypesOnArr, $xyzRadStrArr)" -bgc 0.6 0.6 0.6 -h 30;
+
+// creating the variables that will be used across functions
+// they are not global, they will just be passed as parameters
+int $debrisTypesOnArr[];
+string $xyzRadStrArr[];
+
+showWindow;
+
+
+// customizeDebris
+// a function to create the second UI which further specifies debris to create
+// params:
+//    $firstWindowName : the name of the first window (to be deleted)
+//    $debrisTypesOnArr : the array that will be filled in this customizeDebris function with the selected debris types
+//    $xyzRadStrArr : the array that will be filled in this customizeDebris function with floatfieldgroup x, y, z, and radius values
+proc int customizeDebris(string $firstWindowName, int $debrisTypesOnArr[], string $xyzRadStrArr[])
+{
+    // get the global 
+    global float $x;
+    global float $z;
+    // store the x and y values for the ground plane
+    $x = `floatField -q -value xVal`;
+    $z = `floatField -q -value zVal`;
+    
+    // create a second window to customize the debris
+    global string $secondWindow;
+    $secondWindow = `window -title "Debris Customizations!" -w 300 -h 300`;
+    columnLayout -adjustableColumn true -bgc 0.8 0.8 0.8;
+    // empty row
+    text -label "";
+    
+    // get the types of debris to use from the first UI
+    // stored in an int array
+    $debrisTypesOnArr = `checkBoxGrp -q -valueArray4 debrisType`;
+    // check which types of debris the user wants and figure out how much
+    // of each debris type to put in the scene
+    int $typesOfDebris = `size $debrisTypesOnArr`;
+    if ($typesOfDebris > 0)
+    {
+        text -label "Rank the debris based on what debris type you want the most of (1) to least of (4)";
+        text -label "You are free to rank multiple debris types with the same number for equal amounts of debris:" -h 25;
+         // debris types by index in debrisTypesOnArr are:
+        // 0 - Rocks
+        // 1 - Metal
+        // 2 - Glass
+        // 3 - Trash
+        if ($debrisTypesOnArr[0] == 1)
+        {
+            // rock type was selected, so show radio buttons for ratio of how many rocks to show
+            radioButtonGrp -label "Rocks ranking: " -numberOfRadioButtons 4 -labelArray4 "1" "2" "3" "4" rockRank;
+        }
+        // if any debris type was not selected, hide the object in the scene
+        else if ($debrisTypesOnArr[0] == 0)
+        {
+            hide rock;
+        }
+        if ($debrisTypesOnArr[1] == 1)
+        {
+            // metal type was selected, so show radio buttons for ratio of how much metal to show
+            radioButtonGrp -label "Metal ranking: " -numberOfRadioButtons 4 -labelArray4 "1" "2" "3" "4" metalRank;
+        }
+        else if ($debrisTypesOnArr[1] == 0)
+        {
+            hide metal;
+        }
+        if ($debrisTypesOnArr[2] == 1)
+        {
+            // glass type was selected, so show radio buttons for ratio of how much glass to show
+            radioButtonGrp -label "Glass ranking: " -numberOfRadioButtons 4 -labelArray4 "1" "2" "3" "4" glassRank;
+        }
+        else if ($debrisTypesOnArr[2] == 0)
+        {
+            hide glass;
+            hide glassShards;
+        }
+        if ($debrisTypesOnArr[3] == 1)
+        {
+            // trash type was selected, so show radio buttons for ratio of how much trash to show
+            radioButtonGrp -label "Trash ranking: " -numberOfRadioButtons 4 -labelArray4 "1" "2" "3" "4" trashRank;
+        } 
+        else if ($debrisTypesOnArr[3] == 0)
+        {
+            hide trash;
+        }
+    }
+    else 
+    {
+        // no debris was selected
+         text -label "You did not select any debris for your debris field." -h 40;
+    }
+    
+    // ask for the points and radius to not put debris at
+    int $numPoints = `intField -q -value noDebrisPts`;
+    //check if there are any points
+    if ($numPoints > 0)
+    {
+        // the user wants points without debris, so let them specify where
+        text -label "Specify the coordinates and radius around the coordinate the debris should not be placed: " -h 30;
+        int $i;
+        for ($i = 0; $i < $numPoints; $i++)
+        {
+            $xyzRadStrArr[$i] = `floatFieldGrp -label "X, Y, Z, Radius: " -numberOfFields 4`;
+        }  
+    }
+    else
+    {
+        // the user did not specify where to not put debris
+        text -label "The debris will be spread along the whole ground plane" -h 30;
+    }
+    // final buttons in UI for creating debris field and clean up
+    text -label "Click the button to create your debris field!" -h 30;
+    button -label "Create Debris Field" -bgc 0.6 0.6 0.6 -h 30 -command "createField($debrisTypesOnArr, $xyzRadStrArr)";
+    text -label "";
+    text -label "When finished, reset the scene or close the window" -h 30;
+    button -label "Reset the Scene" -command "resetScene()" -h 30 -bgc 0.6 0.6 0.6;
+    button -label "Close the Window" -command "cleanUp" -h 30 -bgc 0.6 0.6 0.6;
+
+    
+    // delete the first UI window
+    deleteUI $firstWindowName;
+    // show this second UI window
+    showWindow;
+    
+    
+    return 1;
+}
+
+
+// createField
+// calls helper functions to help create the debris field
+// params:
+//    $numDebrisTypes : int array that holds the types of debris the user wants
+//    $ xyzRadStrArr : string array that holds the float field group values of 
+//                        x,y,z and radius points where not to put debris
+proc int createField(int $numDebrisTypes[], string $xyzRadStrArr[])
+{    
+    global float $x;
+    global float $z;
+    
+    // get the types of debris that had been choosen 
+    int $typesOfDebris = `size $numDebrisTypes`;
+    if ($typesOfDebris > 0)
+    {
+        // debris types by index in debrisTypesOnArr are:
+        // 0 - Rocks
+        // 1 - Metal
+        // 2 - Glass
+        // 3 - Trash
+        
+        // for object creation, we want to create each piece of debris within
+        // the x and y vals given by the user (0 - x/2, 0 - y/2) to (0 + x/2, 0 + y/2)
+        // but also not intersecting with the non-coordinates
+        // make most of the debris at .5 scale or smaller
+        
+        if ($numDebrisTypes[0] == 1)
+        {
+            int $rockRank = `radioButtonGrp -q -select rockRank`;
+            // find the number of debris pieces to create based on ratio
+            int $numDebrisPieces = getDebrisPieces($x, $z, $rockRank);
+            // send the rank and the debrisNums to a proc to create the debris
+            createRocks($numDebrisPieces, $x, $z, $xyzRadStrArr);
+        }
+
+        if ($numDebrisTypes[1] == 1)
+        {
+            int $metalRank = `radioButtonGrp -q -select metalRank`;
+            // find the number of debris pieces to create based on ratio
+            int $numDebrisPieces = getDebrisPieces($x, $z, $metalRank);
+            // send the rank and the debrisNums to a proc to create the debris
+            createMetal($numDebrisPieces, $x, $z, $xyzRadStrArr);
+        }
+        if ($numDebrisTypes[2] == 1)
+        {
+            int $glassRank = `radioButtonGrp -q -select glassRank`;
+            // find the number of debris pieces to create based on ratio
+            int $numDebrisPieces = getDebrisPieces($x, $z, $glassRank);
+            // send the rank and the debrisNums to a proc to create the debris
+            createGlass($numDebrisPieces, $x, $z, $xyzRadStrArr);
+        }
+        if ($numDebrisTypes[3] == 1)
+        {
+            int $trashRank = `radioButtonGrp -q -select trashRank`;
+            // find the number of debris pieces to create based on ratio
+            int $numDebrisPieces = getDebrisPieces($x, $z, $trashRank);
+            // send the rank and the debrisNums to a proc to create the debris
+            createTrash($numDebrisPieces, $x, $z, $xyzRadStrArr);
+        } 
+    }
+    else 
+    {
+         print("User did not select any debris for your debris field.");
+    }
+    
+    return 1;
+}
+
+
+// getDebrisPieces
+// figures out the number of debris pieces to create based on ratio selected by user
+proc int getDebrisPieces(float $x, float $z, int $rank)
+{
+    int $returnRank = 0;
+    // to simplify the ratios I will just regard the ratio as a percent
+    // if the debris type is ranked 1 it will create at 100% capacity,
+    // ranked 2 will create 75% of their debris, ranked 3 will be 50%, 4 will be 25%
+    // 100% debris will be (xVal + yVal)/2 pieces of debris
+    int $hundredPercentDebrisNum = int(($x + $z) / 2);
+    if ($rank == 1)
+    {
+        $returnRank = $hundredPercentDebrisNum;
+    }
+    else if ($rank == 2)
+    {
+        $returnRank = $hundredPercentDebrisNum * 0.75;
+    }
+    else if ($rank == 3)
+    {
+        $returnRank = $hundredPercentDebrisNum * 0.5;
+    }
+    else
+    {
+        $returnRank = $hundredPercentDebrisNum * 0.25;
+    }
+    
+    return $returnRank;
+
+}
+
+
+// createRocks
+// creates the debris field of rocks
+// params:
+//    $numDebrisPieces : the number of pieces of debris (found with getDebrisPieces and ratio)
+//    $x : the length of the x plane
+//    $z : the length of the z plane
+//    $xyzRadStrArr : the string array of the x,y,z and pos of where the user does not want debris
+proc int createRocks(int $numDebrisPieces, float $x, float $z, string $xyzRadStrArr[])
+{
+    // create a group for the rocks
+    group -em -name rockGroup;
+
+    // loop through the number of pieces of debris that need to be created
+    int $piece;
+    for ($piece = 0; $piece < $numDebrisPieces; $piece++)
+    {
+        // figure out where to place the rock using rand on the x, z ground plane
+        // while loop to check if the position is valid (not within the radius
+        // of a point to not put debirs in)
+        int $posIsValid = true;
+        int $keepGoing = true;
+        float $xPos;
+        float $zPos;
+        while ($keepGoing == true)
+        {
+            // create the randomized x, z point
+            $xPos = rand(0.0 - ($x/2.0), 0.0 + ($x/2.0));
+            $zPos = rand(0.0 - ($z/2.0), 0.0 + ($z/2.0));
+            //print("xpos = " + $xPos + " , zPos = " + $zPos + "\n");
+            // loop through the invalid points
+            int $invalidPtsSize = `size $xyzRadStrArr`;
+            int $i;
+            for ($i = 0; $i < $invalidPtsSize; $i++)
+            {
+                // get the invalid point
+                float $noXPos = `floatFieldGrp -q -value1 $xyzRadStrArr[$i]`;
+                float $noZPos = `floatFieldGrp -q -value3 $xyzRadStrArr[$i]`;
+                float $noRadius = `floatFieldGrp -q -value4 $xyzRadStrArr[$i]`;
+                //print("xyzRadStrArr: " + $noXPos + ", " + $noZPos + ", radius: " + $noRadius + "\n");
+                // check if our x,z point is within the radius of the user no-go point
+                if ($xPos > ($noXPos - ($noRadius/2)) && $xPos < ($noXPos + ($noRadius/2)))
+                {
+                    if ($zPos > ($noZPos - ($noRadius/2)) && $zPos < ($noZPos + ($noRadius/2)))
+                    {
+                        // our point is within a no-debris zone, so our position point is not valid
+                        $posIsValid = false;
+                        //print("position is not valid\n");
+                        $i = $invalidPtsSize;
+                    }
+                    else
+                    {
+                        // our point is valid
+                        $posIsValid = true;
+                    }
+                }
+                else
+                {
+                    // our point is valid
+                    $posIsValid = true;
+                }
+            }
+            if ($posIsValid == true)
+            {
+                // our point is vaid so we can break and exit the loop
+                $keepGoing = false;
+                break;
+            }
+            // else we want to rerun the loop to generate new rand x and z positions
+        }
+        // when we exit the loop we should have a valid x and z position
+        // now create a randomized scale for the object
+        float $scale = 0.25;
+        float $initialRand = rand(0, 1);
+        // making it more likely that a small object get created than a larger one
+        if ($initialRand < 0.75)
+        {
+            $scale = rand(0.01, 0.5);
+        }
+        else if ($initialRand < 0.95)
+        {
+            $scale = rand(0.5, 1);
+        }
+        else
+        {
+            $scale = rand(1, 2);
+        }
+        // randomize a rotate value
+        float $rotate = rand(0, 360);
+        
+        // finally create the rock
+        // select our rock
+        select -cl;
+        select -r rock;
+        // create an instance of the rock
+        string $currRockArr[] = `instance`; 
+        // scale the rock to our scale values
+        scale -r $scale $scale $scale;
+        // rotate the rock to our rotate value
+        rotate -r 0 $rotate 0;
+        // translate based on world space
+        // the Y value should be the $scale for the rock to be flush with the ground
+        xform -translation $xPos $scale $zPos;
+        parent $currRockArr[0] rockGroup;
+    }
+    
+    // hide the initial rock when done
+    hide rock;
+    
+    return 1;
+}
+
+
+// createMetal
+// creates the debris field of metal
+// params:
+//    $numDebrisPieces : the number of pieces of debris (found with getDebrisPieces and ratio)
+//    $x : the length of the x plane
+//    $z : the length of the z plane
+//    $xyzRadStrArr : the string array of the x,y,z and pos of where the user does not want debris
+proc int createMetal(int $numDebrisPieces, float $x, float $z, string $xyzRadStrArr[])
+{
+    // create a group for the metal
+    group -em -name metalGroup;
+
+    // loop through the number of pieces of debris that need to be created
+    int $piece;
+    for ($piece = 0; $piece < $numDebrisPieces; $piece++)
+    {
+        // figure out where to place the metal using rand on the x, z ground plane
+        // while loop to check if the position is valid (not within the radius
+        // of a point to not put debirs in)
+        int $posIsValid = true;
+        int $keepGoing = true;
+        float $xPos;
+        float $zPos;
+        while ($keepGoing == true)
+        {
+            // create the randomized x, z point
+            $xPos = rand(0.0 - ($x/2.0), 0.0 + ($x/2.0));
+            $zPos = rand(0.0 - ($z/2.0), 0.0 + ($z/2.0));
+            // loop through the invalid points
+            int $invalidPtsSize = `size $xyzRadStrArr`;
+            int $i;
+            for ($i = 0; $i < $invalidPtsSize; $i++)
+            {
+                // get the invalid point
+                float $noXPos = `floatFieldGrp -q -value1 $xyzRadStrArr[$i]`;
+                float $noZPos = `floatFieldGrp -q -value3 $xyzRadStrArr[$i]`;
+                float $noRadius = `floatFieldGrp -q -value4 $xyzRadStrArr[$i]`;
+                // check if our x,z point is within the radius of the user no-go point
+                if ($xPos > ($noXPos - ($noRadius/2)) && $xPos < ($noXPos + ($noRadius/2)))
+                {
+                    if ($zPos > ($noZPos - ($noRadius/2)) && $zPos < ($noZPos + ($noRadius/2)))
+                    {
+                        // our point is within a no-debris zone, so our position point is not valid
+                        $posIsValid = false;
+                        //print("position is not valid\n");
+                        $i = $invalidPtsSize;
+                    }
+                    else
+                    {
+                        // our point is valid
+                        $posIsValid = true;
+                    }
+                }
+                else
+                {
+                    // our point is valid
+                    $posIsValid = true;
+                }
+            }
+            if ($posIsValid == true)
+            {
+                // our point is vaid so we can break and exit the loop
+                $keepGoing = false;
+                break;
+            }
+            // else we want to rerun the loop to generate new rand x and z positions
+        }
+        // when we exit the loop we should have a valid x and z position
+        // now create a randomized scale for the object
+        float $scale = 0.25;
+        float $initialRand = rand(0, 1);
+        // making it more likely that a small object get created than a larger one
+        if ($initialRand < 0.75)
+        {
+            $scale = rand(0.01, 0.5);
+        }
+        else if ($initialRand < 0.95)
+        {
+            $scale = rand(0.5, 1);
+        }
+        else
+        {
+            $scale = rand(1, 2);
+        }
+        // randomize a rotate value
+        float $rotate = rand(0, 360);
+        
+        // finally create the metal
+        // select our metal
+        select -cl;
+        select -r metal;
+        // create an instance of the metal
+        string $currMetalArr[] = `instance`; 
+        // scale the metal to our scale values
+        scale -r $scale $scale $scale;
+        // rotate the metal to our rotate value
+        rotate -r 0 $rotate 0;
+        // translate based on world space
+        // the Y value should be the $scale for the metal to be flush with the ground
+        xform -translation $xPos $scale $zPos;
+        parent $currMetalArr[0] metalGroup;
+    }
+    
+    // hide the initial metal when done
+    hide metal;
+    return 1;
+}
+
+
+// createGlass
+// creates the debris field of glass
+// this also tests the use of two separate glass objects to spread in the field
+// params:
+//    $numDebrisPieces : the number of pieces of debris (found with getDebrisPieces and ratio)
+//    $x : the length of the x plane
+//    $z : the length of the z plane
+//    $xyzRadStrArr : the string array of the x,y,z and pos of where the user does not want debris
+proc int createGlass(int $numDebrisPieces, float $x, float $z, string $xyzRadStrArr[])
+{
+    // create a group for the glass
+    group -em -name glassGroup;
+
+    // loop through the number of pieces of debris that need to be created
+    int $piece;
+    for ($piece = 0; $piece < $numDebrisPieces; $piece++)
+    {
+        // figure out where to place the glass using rand on the x, z ground plane
+        // while loop to check if the position is valid (not within the radius
+        // of a point to not put debirs in)
+        int $posIsValid = true;
+        int $keepGoing = true;
+        float $xPos;
+        float $zPos;
+        while ($keepGoing == true)
+        {
+            // create the randomized x, z point
+            $xPos = rand(0.0 - ($x/2.0), 0.0 + ($x/2.0));
+            $zPos = rand(0.0 - ($z/2.0), 0.0 + ($z/2.0));
+            // loop through the invalid points
+            int $invalidPtsSize = `size $xyzRadStrArr`;
+            int $i;
+            for ($i = 0; $i < $invalidPtsSize; $i++)
+            {
+                // get the invalid point
+                float $noXPos = `floatFieldGrp -q -value1 $xyzRadStrArr[$i]`;
+                float $noZPos = `floatFieldGrp -q -value3 $xyzRadStrArr[$i]`;
+                float $noRadius = `floatFieldGrp -q -value4 $xyzRadStrArr[$i]`;
+                // check if our x,z point is within the radius of the user no-go point
+                if ($xPos > ($noXPos - ($noRadius/2)) && $xPos < ($noXPos + ($noRadius/2)))
+                {
+                    if ($zPos > ($noZPos - ($noRadius/2)) && $zPos < ($noZPos + ($noRadius/2)))
+                    {
+                        // our point is within a no-debris zone, so our position point is not valid
+                        $posIsValid = false;
+                        //print("position is not valid\n");
+                        $i = $invalidPtsSize;
+                    }
+                    else
+                    {
+                        // our point is valid
+                        $posIsValid = true;
+                    }
+                }
+                else
+                {
+                    // our point is valid
+                    $posIsValid = true;
+                }
+            }
+            if ($posIsValid == true)
+            {
+                // our point is vaid so we can break and exit the loop
+                $keepGoing = false;
+                break;
+            }
+            // else we want to rerun the loop to generate new rand x and z positions
+        }
+        // when we exit the loop we should have a valid x and z position
+        // now create a randomized scale for the object
+        float $scale = 0.25;
+        float $initialRand = rand(0, 1);
+        // making it more likely that a small object get created than a larger one
+        if ($initialRand < 0.85)
+        {
+            $scale = rand(0.4, 1);
+        }
+        else if ($initialRand < 0.95)
+        {
+            $scale = rand(1, 1.25);
+        }
+        else
+        {
+            $scale = rand(1.25, 1.75);
+        }
+        // randomize a rotate value
+        float $rotate = rand(0, 360);
+        float $rotateX = 0;
+        
+        // finally create the glass
+        // select either the glass or the glassShards
+        select -cl;
+        if ($initialRand < 0.6)
+        {
+            select glassShards;
+        }
+        else
+        {
+            select glass;
+            if ($initialRand <= 0.85)
+            {
+                $rotateX = 90;
+            }
+            
+        }
+        // create an instance of the glass
+        string $currGlassArr[] = `instance`; 
+        // scale the glass to our scale values
+        scale -r $scale $scale $scale;
+        // rotate the glass to our rotate value
+        rotate -r $rotateX $rotate 0;
+        // translate based on world space
+        // the Y value should be the $scale for the glass to be flush with the ground
+        xform -translation $xPos $scale $zPos;
+        parent $currGlassArr[0] glassGroup;
+    }
+    
+    // hide the initial glass when done
+    hide glass;
+    hide glassShards;
+    return 1;
+}
+
+
+// createTrash
+// creates the debris field of trash
+// params:
+//    $numDebrisPieces : the number of pieces of debris (found with getDebrisPieces and ratio)
+//    $x : the length of the x plane
+//    $z : the length of the z plane
+//    $xyzRadStrArr : the string array of the x,y,z and pos of where the user does not want debris
+proc int createTrash(int $numDebrisPieces, float $x, float $z, string $xyzRadStrArr[])
+{
+    // create a group for the trash
+    group -em -name trashGroup;
+
+    // loop through the number of pieces of debris that need to be created
+    int $piece;
+    for ($piece = 0; $piece < $numDebrisPieces; $piece++)
+    {
+        // figure out where to place the trash using rand on the x, z ground plane
+        // while loop to check if the position is valid (not within the radius
+        // of a point to not put debirs in)
+        int $posIsValid = true;
+        int $keepGoing = true;
+        float $xPos;
+        float $zPos;
+        while ($keepGoing == true)
+        {
+            // create the randomized x, z point
+            $xPos = rand(0.0 - ($x/2.0), 0.0 + ($x/2.0));
+            $zPos = rand(0.0 - ($z/2.0), 0.0 + ($z/2.0));
+            // loop through the invalid points
+            int $invalidPtsSize = `size $xyzRadStrArr`;
+            int $i;
+            for ($i = 0; $i < $invalidPtsSize; $i++)
+            {
+                // get the invalid point
+                float $noXPos = `floatFieldGrp -q -value1 $xyzRadStrArr[$i]`;
+                float $noZPos = `floatFieldGrp -q -value3 $xyzRadStrArr[$i]`;
+                float $noRadius = `floatFieldGrp -q -value4 $xyzRadStrArr[$i]`;
+                // check if our x,z point is within the radius of the user no-go point
+                if ($xPos > ($noXPos - ($noRadius/2)) && $xPos < ($noXPos + ($noRadius/2)))
+                {
+                    if ($zPos > ($noZPos - ($noRadius/2)) && $zPos < ($noZPos + ($noRadius/2)))
+                    {
+                        // our point is within a no-debris zone, so our position point is not valid
+                        $posIsValid = false;
+                        $i = $invalidPtsSize;
+                    }
+                    else
+                    {
+                        // our point is valid
+                        $posIsValid = true;
+                    }
+                }
+                else
+                {
+                    // our point is valid
+                    $posIsValid = true;
+                }
+            }
+            if ($posIsValid == true)
+            {
+                // our point is vaid so we can break and exit the loop
+                $keepGoing = false;
+                break;
+            }
+            // else we want to rerun the loop to generate new rand x and z positions
+        }
+        // when we exit the loop we should have a valid x and z position
+        // now create a randomized scale for the object
+        float $scale = 0.25;
+        float $initialRand = rand(0, 1);
+        // making it more likely that a small object get created than a larger one
+        if ($initialRand < 0.75)
+        {
+            $scale = rand(0.1, 0.75);
+        }
+        else if ($initialRand < 0.95)
+        {
+            $scale = rand(0.75, 1.25);
+        }
+        else
+        {
+            $scale = rand(1.25, 2.25);
+        }
+        // randomize a rotate value
+        float $rotate = rand(0, 360);
+        
+        // finally create the trash
+        // select our trash
+        select -cl;
+        select -r trash;
+        // create an instance of the trash
+        string $currTrashArr[] = `instance`; 
+        // scale the trash to our scale values
+        scale -r $scale $scale $scale;
+        // rotate the trash to our rotate value
+        rotate -r 0 $rotate 0;
+        // translate based on world space
+        // the Y value should be the $scale for the trash to be flush with the ground
+        xform -translation $xPos $scale $zPos;
+        parent $currTrashArr[0] trashGroup;
+    }
+    
+    // hide the initial trash when done
+    hide trash;
+    return 1;
+}
+
+
+// resetScene
+proc resetScene()
+{
+    if (`objExists rockGroup`)
+    {
+        delete rockGroup;
+    }
+    if (`objExists metalGroup`)
+    {
+        delete metalGroup;
+    }
+    if (`objExists glassGroup`)
+    {
+        delete glassGroup;
+    }
+    if (`objExists trashGroup`)
+    {
+        delete trashGroup;
+    }
+    
+    showHidden rock;
+    showHidden metal;
+    showHidden glass;
+    showHidden glassShards;
+    showHidden trash;
+}
+
+
+// cleanUp
+// procedure to delete the window
+proc cleanUp()
+{
+    // window global
+    global string $secondWindow;
+    
+    // delete the window
+    deleteUI $secondWindow; 
+}
+
+
+
+
+

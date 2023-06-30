@@ -1,0 +1,273 @@
+// Montgomery_Assignment05
+
+// making a street of row houses
+// this is an asset I will need for my thesis video game so I thought it would be
+// helpful to get a head start on it here
+
+
+
+// declare global variables at the top of the script
+// global string for the name of the main window
+global string $mainWindow = "";
+global string $windowTwo = "";
+// global for number of houses
+global int $houses = 0;
+// number of floors for each house
+global string $numFloorsStrArr[] = {};
+// depth of each house
+global string $depthStrArr[] = {};
+// front door placement for each house
+global string $frontDoorArr[] = {};
+// global for the completed houses
+global string $completedHouses[] = {};
+
+
+// Making the first UI 
+// this UI will include number of houses to make (10 Max)
+// and will call a procedure that will let the user customize each house
+$mainWindow = `window -title "Make Some Houses!" -w 300 -h 200`;
+columnLayout -adjustableColumn true -bgc 0.9 0.8 0.8;
+// intField for number of houses to make
+text -label "Please specify the number of houses to create: (10 max)" -h 25;
+intField -minValue 1 -maxValue 10 -value 4 -step 1 numHouses;
+// call the proc to customize houses with a button
+text -label "Let's get to customizing those houses!" -h 25;
+button -label "Customize Houses" -command "customizeHouses" -bgc 0.9 0.7 0.7;
+showWindow;
+
+
+// customizeHouses
+// procedure will create a second UI to prompt user to customize their houses
+proc customizeHouses()
+{
+    // re-initialize the globals
+    // number of houses
+    global int $houses;
+    // number of floors per house
+    global string $numFloorsStrArr[];
+    // depth of each house
+    global string $depthStrArr[];
+    // front door placement 
+    global string $frontDoorArr[];
+    // global for the completed houses
+    global string $completedHouses[];
+
+    // create a second UI window
+    global string $windowTwo;
+    $windowTwo = `window -title "House Customizations!" -w 400 -h 400`;
+    columnLayout -adjustableColumn true -bgc 0.8 0.8 0.9;
+    // get the number of houses from the first UI
+    $houses = `intField -q -value numHouses`;
+    int $houseNum;
+    // loop through the number of houses to create UI for each house
+    // asking for number of floors, depth, and front door position
+    for ($houseNum = 0; $houseNum < $houses; $houseNum++)
+    {
+        text -label ("Number of floors in house number " + ($houseNum+1) + ": (max 4 floors)") -h 25;
+        $numFloorsStrArr[$houseNum] = `intField -minValue 1 -maxValue 4 -value 3 -step 1`;
+        text -label ("Depth of house number " + ($houseNum + 1) + ": ") -h 25;
+        $depthStrArr[$houseNum] = `radioButtonGrp -numberOfRadioButtons 3 -labelArray3 "Shallow" "Regular" "Deep" -select 2`;
+        text -label ("Front door placement of house number " + ($houseNum + 1) + ": ") -h 25;
+        $frontDoorArr[$houseNum] = `radioButtonGrp -numberOfRadioButtons 3 -labelArray3 "Left" "Middle" "Right" -select 2`;
+    }
+    // make a space in the window
+    text -label "" -h 10;
+    // button to make the houses
+    text -label "Click the button to make the houses:" -h 25;
+    button -label "Make Houses!" -command "buildHouses" -bgc 0.7 0.7 0.9;
+    // button to add a slider to the scene
+    text -label "Click the button to make a slider in the scene to adjust the spacing of the houses:" -h 25;
+    button -label "Create Slider" -command "createSlider" -bgc 0.7 0.7 0.9;
+    // button to close the window
+    text -label "Close the Window?" -h 25;
+    button -label "Close Window!" -command "cleanUp" -bgc 0.7 0.7 0.9;
+    global string $mainWindow;
+    deleteUI $mainWindow;
+    showWindow;    
+}
+
+
+// buildHouses
+// builds the customizations of each house
+proc buildHouses()
+{
+    // re-initialize the globals
+    // number of houses
+    global int $houses;
+    // number of floors per house
+    global string $numFloorsStrArr[];
+    // depth of each house
+    global string $depthStrArr[];
+    // front door placement 
+    global string $frontDoorArr[];
+    // global for the completed houses
+    global string $completedHouses[];
+    
+    // create local arrays to store the variables
+    int $floorsArr[];
+    int $depthArr[];
+    int $doorsArr[];
+    
+    // loop through the global arrays to query information out of them
+    // store that info in our local arrays
+    int $houseNum;
+    for ($houseNum = 0; $houseNum < $houses; $houseNum++)
+    {
+        $floorsArr[$houseNum] = int(`intField -q -value $numFloorsStrArr[$houseNum]`);
+        $depthArr[$houseNum] = `radioButtonGrp -q -select $depthStrArr[$houseNum]`;
+        $doorsArr[$houseNum] = `radioButtonGrp -q -select $frontDoorArr[$houseNum]`;
+    }
+
+    //print ("NEW num floors arr: " + $floorsArr[0] + ", " + $floorsArr[1] + ", " + $floorsArr[2] + ", " + $floorsArr[3] + "\n ");
+    //print ("NEW depth arr: " + $depthArr[0] + ", " + $depthArr[1] + ", " + $depthArr[2] + ", " + $depthArr[3] + "\n ");
+    //print ("NEW doors arr: " + $doorsArr[0] + ", " + $doorsArr[1] + ", " + $doorsArr[2] + ", " + $doorsArr[3] + "\n ");
+    
+    // loop through and actually make the houses
+    int $i;
+    for ($i = 0; $i < $houses; $i++)
+    {
+        // create a cube for the house
+        string $currCubeArr[] = `polyCube -h (10+(4*$floorsArr[$i])) -d (8+(2*$depthArr[$i])) -w 8`;
+        // move the house to be last in the line of houses
+        setAttr ($currCubeArr[0]+".translateX") ($i * 8);
+        // align the house to be sitting on the 0,0 x,z plane
+        setAttr ($currCubeArr[0] + ".translateY") ((10+(4*$floorsArr[$i]))/2);
+        // align the house to be sitting on the 0,0 x,y plane
+        setAttr ($currCubeArr[0] + ".translateZ") ((8+(2*$depthArr[$i]))/-2);
+        
+        
+        // make the windows - 2 per floor
+        // the following 3 commands make a perfect window
+        string $window1[] = `polyCube -h 3 -w 2`;
+        string $window2[] = `polyCube -h 3 -w 0.5 -d 1.5`;
+        string $window3[] = `polyCube -h 0.5 -w 2 -d 1.5`;
+        // group those objects together
+        string $groupName = `group $window1[0] $window2[0] $window3[0]`;
+        // duplicate the window group and group the groups together
+        string $group2Name[] = `duplicate -rr`;
+        move -r 4 0 0;
+        string $bigGroupName = `group -n floorWindows $groupName $group2Name[0]`;
+        // move the window group to where the house was just placed
+        setAttr ($bigGroupName + ".translateX") (($i * 8) - 2);
+        setAttr ($bigGroupName + ".translateY") 8;
+        // create an array to store the names of the groups of windows
+        string $windowsArr[];
+        $windowsArr[0] = $bigGroupName;
+        // now duplicate that window based on the number of floors
+        int $j;
+        for ($j = 1; $j < $floorsArr[$i]; $j++)
+        {
+            select -r $bigGroupName;
+            string $newGroupName[] = `duplicate -rr`;
+            // store the new floor windows to our window group name array
+            $windowsArr[$j] = $newGroupName[0];
+            move -r 0 (5*$j) 0;
+        }
+        // group together the windows from our window group name array
+        // all groups will be parented to $bigGroupName
+        string $windowGroup = $bigGroupName;
+        int $k;
+        for ($k = 1; $k < $floorsArr[$i]; $k++)
+        {
+            $windowGroup = `group -n windowpls -p $windowGroup $windowsArr[$k]`;       
+        }        
+        
+        // now make door and figure out placement
+        string $doorName[] = `polyCube -h 5 -w 3`;
+        string $doorKnob[] = `polyCylinder -h 2 -r 0.3`;
+        setAttr ($doorKnob[0] + ".rotateX") 90;
+        setAttr ($doorKnob[0] + ".translateX") 1;
+        string $doorGroup = `group $doorName[0] $doorKnob[0]`;
+        // move the door up half it's height
+        setAttr ($doorGroup + ".translateY") (5.0/2.0);
+        setAttr ($doorGroup + ".translateX") (($i * 8));
+        // move left or right based on user choice
+        if ($doorsArr[$i] == 1)
+        {
+            setAttr ($doorGroup + ".translateX") (($i * 8) - 2);
+        }
+        else if ($doorsArr[$i] == 3)
+        {
+            setAttr ($doorGroup + ".translateX") (($i * 8) + 2);
+        }
+        
+        // at this point the house is totally made, lets group it all together
+        string $finalHouse = `group -n completeHouse1 $currCubeArr[0] $bigGroupName $doorGroup`;
+        // add the completed house group to the global array storing the names of the house groups
+        $completedHouses[$i] = $finalHouse;
+    }
+}
+
+
+// createSlider
+// creates a slider to control the spacing between houses
+proc createSlider()
+{
+    // global for the completed houses
+    global string $completedHouses[];
+    
+    // create and connect a space locator node to the house X movement
+    spaceLocator -n "sliderLocator";
+    // create a nurbs circle
+    circle -n "slider" -r 2;
+    // parent the circle to the spaceLocator (locator is parent)
+    // we parent so we can move the slider locator wherever is convenient
+    parent slider sliderLocator;
+    // make the slider visible
+    setAttr "sliderLocator.translateX" -7;
+    // we only want to manipulate the slider on the Y axis
+    // because of this, we can lock the other attributes
+    setAttr -lock true "slider.translateX";
+    setAttr -lock true "slider.translateZ";
+    
+    // loop through the houses creating a multiple divide node for each
+    // to control different house movements
+    int $numHouses = `size $completedHouses`;
+    float $currMult = 0.2;
+    int $i;
+    for ($i = 0; $i < $numHouses; $i++)
+    {
+        // create a multiply divide node
+        createNode multiplyDivide -n ("multDivNode" + $i);
+        // we can set the type of operation by using the operation attribute
+        // 1 = multiply, 2 = divide, 3 = power
+        setAttr ("multDivNode" + $i + ".operation") 1;
+        
+        // connect the input to the slider
+        // we are giving the multDivNode two inputs - the slider translate value,
+        // and the number to multiply by in the operation
+        connectAttr "slider.translateY" ("multDivNode" + $i + ".input1X");
+        setAttr ("multDivNode" + $i + ".input2X") $currMult;
+        $currMult += 0.1;
+        
+        // connect the multDiv output to the houses X movement
+        connectAttr ("multDivNode" + $i + ".outputX") ($completedHouses[$i] + ".translateX");
+    }
+}
+
+
+// cleanUp
+// procedure to delete the window and clean up the global arrays
+proc cleanUp()
+{
+    // number of floors per house
+    global string $numFloorsStrArr[];
+    // depth of each house
+    global string $depthStrArr[];
+    // front door placement 
+    global string $frontDoorArr[];
+    // global for the completed houses
+    global string $completedHouses[];
+    // global for the completed houses
+    global string $completedHouses[];
+    // window global
+    global string $windowTwo;
+    
+    // delete the window
+    deleteUI $windowTwo; 
+    // clear all the global arrays
+    clear $numFloorsStrArr; 
+    clear $depthStrArr; 
+    clear $frontDoorArr; 
+    clear $completedHouses;
+}
