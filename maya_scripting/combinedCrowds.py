@@ -4,7 +4,9 @@ import maya.cmds as cmds
 import functools
 import random
 
-
+# userSelectUI
+#    creates the first UI the user inteacts with
+#    prompts for the way the user wants to create a crowd: by number, body type, or both
 def userSelectUI():
     # we can uniquely identify each window to make sure only
     # one instance is open at any given time
@@ -252,14 +254,13 @@ def makeCrowdByNumber( pNumMembers, *pArgs ):
 
 
 # makeCrowdByBodyType
-#     takes in the number of crowd members to create as input
-#     and creates that many number of randomized crowd members 
+#     takes in the users selected head, body, and leg type
+#     and creates a crowd members with those specified features
 def makeCrowdByBodyType( pHeadField, pBodyField, pLegField, *pArgs ):
     # get the data out of the args by querying them
     selectedHead = cmds.radioButtonGrp( pHeadField, query=True, select=True )
     selectedBody = cmds.radioButtonGrp( pBodyField, query=True, select=True )
     selectedFeet = cmds.radioButtonGrp( pLegField, query=True, select=True )
-    
     
     # randomize using new seeds
     seed = random.uniform( 0, 100 )
@@ -337,8 +338,8 @@ def makeCrowdByBodyType( pHeadField, pBodyField, pLegField, *pArgs ):
 
 
 # makeCrowdByBodyAndNumber
-#     takes in the number of crowd members to create as input
-#     and creates that many number of randomized crowd members 
+#     takes in the user selected head, body, and leg types as well as the 
+#     number of crowd members and creates that many number of specified crowd members 
 def makeCrowdByBodyAndNumber( pHeadField, pBodyField, pLegField, pNumMember, *pArgs ):
     # get the data out of the args by querying them
     selectedHead = cmds.radioButtonGrp( pHeadField, query=True, select=True )
@@ -426,7 +427,9 @@ def makeCrowdByBodyAndNumber( pHeadField, pBodyField, pLegField, pNumMember, *pA
     cmds.xform( bodyGroup, centerPivots=True )
 
     
-
+# clearAndRestart
+#    delete all the DAG objects in the scene and repropt the first UI
+#    that gives the user to option of which type of crowd to create
 def clearAndRestart( *pArgs ):
     # select all DAG objects to delete from the scene
     cmds.select( allDagObjects = True )
@@ -437,6 +440,5 @@ def clearAndRestart( *pArgs ):
 
 
 
-
+# start the program by calling the userSelectUI to prompt the user
 userSelectUI()
-        
