@@ -38,22 +38,6 @@ public class PrefabReplaceEditor : EditorWindow
     private Dictionary<ReplacableObjectScript, ReplacableObjectScript> scriptRefDict = new Dictionary<ReplacableObjectScript, ReplacableObjectScript>();
 
 
-    void Start()
-    {
-        Debug.Log("in start, making the lists");
-        ReplacableObjectScript[] tempList = FindObjectsOfType<ReplacableObjectScript>();
-
-        int listLen = tempList.Length;
-        Debug.Log("list len = " + listLen);
-        for (int index = 0; index < listLen; index++)
-        {
-            Debug.Log(" tempList[index].gameObject = " + tempList[index].gameObject);
-            allScriptedObjsList.Add(tempList[index].gameObject);
-        }
-
-    }
-
-
     // ShowWindow
     //      creates a PrefabReplaceEditor window and sets a window title through GUIContent
     //  params:
@@ -303,8 +287,6 @@ public class PrefabReplaceEditor : EditorWindow
             newPrefab = objRefDict[oldObj];
             // the newScript is the script component of that newPrefab
             newScript = newPrefab.GetComponent<ReplacableObjectScript>();
-
-            // scriptRefDict[oldObj2.GetComponent<ReplacableObjectScript>().referenceScript] gives the new script for the referenced prefab
             
             // store the script component of the oldObj in oldScript
             oldScript = oldObj.GetComponent<ReplacableObjectScript>();
