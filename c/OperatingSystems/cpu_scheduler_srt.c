@@ -22,18 +22,10 @@
 double calcSRTPriority(process current_proc, double lambda, double alpha)
 {
     printf("\t\tIN calcSRTPriority\n");
-    /* the priority should be based off the remaining time, however the remaining time is 
-        initially set to 0, so all processes would have the same remaining time, however the first 
-        remaining time is set from the current cpu burst time of the process, so I guess this is what 
-        I should be using for now */
-    /* maybe have a check for if the remaining time is not 0, then use the remaining time, else use curr_cpu_burst time */
+    /* the priority should be based off the remaining time, remaining time is initially set to 0, then 
+        set from the current cpu burst time of the process.
+       have a check for if the remaining time is not 0, then use the remaining time, else use curr_cpu_burst time */
     double tau; //= current_proc.cpu_burst_time[curr_cpu_burst];
-    /*
-    if (current_proc.remaining_time != 0)
-    {
-        metric = current_proc.remaining_time;
-    }
-    */
     if (current_proc.expected_runtime == 0)
     {
         /* initial tau = 1/lambda */
@@ -53,10 +45,6 @@ double calcSRTPriority(process current_proc, double lambda, double alpha)
         return tau - (1.0/current_proc.pid);
     }
 }
-
-
-
-
 
 
 /* populateReadyQueue
@@ -100,28 +88,85 @@ void populateReadyQueue(scheduler* proc_scheduler, int current_time_elapsed, dou
         }
         /* pop from the list since we have moved the process from the processes  
             to the readyQueue so it no longer needs to be in the processes list */
-        printf("cabbage\n");
         pop(&proc_scheduler->processes);
-        printf("squash\n");
         /* need to update the current process and arrival time for the while loop 
             (we dont need to go to &proc_scheduler->processes->next because when we pop
             we reload the processes into the head */
         if (!isEmpty(&proc_scheduler->processes))
         {
-            printf("lettice\n");
             current_proc = peek(&proc_scheduler->processes);
             current_proc_arrival = current_proc.arrival_time;
             printf("\tPROCESS %d HAS ARRIVAL TIME OF %d\n", current_proc.pid, current_proc.arrival_time);
         }
         else    //no more processes
         {
-            printf("zuccini\n");
             return;
         }
     }
 }
 
 
+/*
+    runShortestRemainingTime
+    running the SRT algorithm
+    parameters:
+        processes: the linked list of processes
+        num_processes: the number of processes
+        lambda: needed for the estimations of cpu burst times
+        alpha: also needed for the estimations of the cpu burst times
+        context_switch_time: the measure of the context switch time 
+*/
+scheduler* runShortestRemainingTime(process* processes, int num_processes, double lambda, double alpha, int context_switch_time)
+{
+    /* created the counter for the time elapsed, needed to organize arrival times and what can be added to the ready queue */
+    int current_time_elapsed, i;
+    current_time_elapsed = 0;
+   
+    /* get the initial schedule of all processes (this will be based off of arrival time only with tie breaks going to lower pids) */
+    scheduler* proc_scheduler = initScheduler(processes, num_processes);
+
+    /* initialize the running process */
+    proc_scheduler->running = calloc(1, sizeof(process));
+
+
+    /* while loop, should keep running until all processes are finished */
+    while (!isEmpty(&proc_scheduler->readyQueue) || proc_scheduler->running != NULL 
+            || proc_scheduler->blockingQueue != NULL || !isEmpty(&proc_scheduler->processes)) 
+    {
+        /* first lets populate the readyQueue with the processes */
+        if (!isEmpty(&proc_scheduler->processes))
+        {
+            populateReadyQueue(proc_scheduler, current_time_elapsed, lambda, alpha);
+
+        }
+        //print the readyQueue
+        printf("PRINTING READY QUEUE\n");
+        process p = peek(&proc_scheduler->readyQueue);
+        while(&proc_scheduler->readyQueue->next)
+        {
+            printf("\tprocess id: %d  arrival time: %d   expected runtime: %f   \n", p.pid, p.arrival_time, p.expected_runtime);
+            p = peek(&proc_scheduler->readyQueue->next);
+        }
+
+
+        printf("do i get out of there???\n");
+
+        /* check if nothing is in the readyQueue (say nothing arrives at time 0, there is nothing else 
+            to do but continue to the next time), to check this make sure the readyQueue, running, and blockingQueue
+            are empty / NULL 
+        if (isEmpty(&proc_scheduler->readyQueue) && proc_scheduler->running == NULL && proc_scheduler->blockingQueue == NULL)  
+        {
+            printf("AT TIME %d NOTHING IS IN THE READYQUEUE, RUNNING, AND BLOCKINGQUEUE\n", current_time_elapsed);
+            continue;
+        }
+        readyQueueToRunning(proc_scheduler);
+        */
+
+        /* add one to the current_time_elapsed */
+        current_time_elapsed++;
+    }
+    return proc_scheduler;
+}
 
 
 /* checkProcessState
@@ -142,13 +187,6 @@ int checkProcessState(process* proc)
 */
 
 
-
-
-
-
-
-
-
 /*
 void checkBlockingQueue()
 {
@@ -157,14 +195,6 @@ void checkBlockingQueue()
       
 }
 */
-
-
-
-
-
-
-
-
 
 
 /* readyQueueToRunning
@@ -225,11 +255,6 @@ void readyQueueToRunning(scheduler* proc_scheduler)
 */
 
 
-
-
-
-
-
 /*
 void checkRunning(scheduler* proc_scheduler)
 {
@@ -262,13 +287,6 @@ void checkRunning(scheduler* proc_scheduler)
 */
 
 
-
-
-
-
-
-
-
 /*
 void checkIOBurstStates(scheduler* proc_scheduler, int current_time_elapsed)
 {
@@ -295,80 +313,3 @@ void checkIOBurstStates(scheduler* proc_scheduler, int current_time_elapsed)
     }
 }
 */
-
-
-
-
-
-
-
-
-
-
-
-
-
-/*
-    runShortestRemainingTime
-    running the SRT algorithm
-    parameters:
-        processes: the linked list of processes
-        num_processes: the number of processes
-        lambda: needed for the estimations of cpu burst times
-        alpha: also needed for the estimations of the cpu burst times
-        context_switch_time: the measure of the context switch time 
-*/
-scheduler* runShortestRemainingTime(process* processes, int num_processes, double lambda, double alpha, int context_switch_time)
-{
-    /* created the counter for the time elapsed, needed to organize arrival times and what can be added to the ready queue */
-    int current_time_elapsed, i;
-    current_time_elapsed = 0;
-   
-    /* get the initial schedule of all processes (this will be based off of arrival time only with tie breaks going to lower pids) */
-    scheduler* proc_scheduler = initScheduler(processes, num_processes);
-
-    /* initialize the running process */
-    proc_scheduler->running = calloc(1, sizeof(process));
-
-
-    /* while loop, should keep running until all processes are finished */
-    while (!isEmpty(&proc_scheduler->readyQueue) || proc_scheduler->running != NULL 
-            || proc_scheduler->blockingQueue != NULL || !isEmpty(&proc_scheduler->processes)) 
-    {
-        /* first lets populate the readyQueue with the processes */
-        if (!isEmpty(&proc_scheduler->processes))
-        {
-            populateReadyQueue(proc_scheduler, current_time_elapsed, lambda, alpha);
-
-        }
-        //print the readyQueue
-        printf("PRINTING READY QUEUE\n");
-        process p = peek(&proc_scheduler->readyQueue);
-        while(&proc_scheduler->readyQueue->next)
-        {
-            printf("\tprocess id: %d  arrival time: %d   expected runtime: %f   \n", p.pid, p.arrival_time, p.expected_runtime);
-            p = peek(&proc_scheduler->readyQueue->next);
-        }
-
-
-        printf("do i get out of there???\n");
-
-        /* check if nothing is in the readyQueue (say nothing arrives at time 0, there is nothing else 
-            to do but continue to the next time), to check this make sure the readyQueue, running, and blockingQueue
-            are empty / NULL 
-        if (isEmpty(&proc_scheduler->readyQueue) && proc_scheduler->running == NULL && proc_scheduler->blockingQueue == NULL)  
-        {
-            printf("AT TIME %d NOTHING IS IN THE READYQUEUE, RUNNING, AND BLOCKINGQUEUE\n", current_time_elapsed);
-            continue;
-        }
-
-        
-
-        readyQueueToRunning(proc_scheduler);
-        */
-
-        /* add one to the current_time_elapsed */
-        current_time_elapsed++;
-    }
-    return proc_scheduler;
-}
